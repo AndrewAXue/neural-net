@@ -24,7 +24,8 @@ import javax.swing.JPanel;
 public class net{
 	JFrame window = new JFrame();
 	layerclass layer[];
-	int alllayersize[]; 
+	int alllayersize[];
+	weightclass  allweight[][][];
 	int numlayer;
 	Random weightchoose = new Random();
 	Random biaschoose = new Random();
@@ -51,11 +52,15 @@ public class net{
 	// drawweight determines if the weight of the output to the various nodes are shown, and the xpos and ypos
 	// stores where the node will be drawn on the window. The color of the node is a randomized "brighter" color.
 	
+	private class weightclass{
+		double weight=1;
+		double partialdev=0;
+	}
 	
 	private class nodeclass{
 		double bias;
-		double value = 0;
-		double postsig = 0;
+		double zvalue = 0;
+		double avalue = 0;
 		double forwardweight[]={};
 		double derive = 0;
 		
@@ -72,7 +77,7 @@ public class net{
 		
 		void printnode(){
 			System.out.println("Printing Node");
-			System.out.println("value: "+value+" Post Sig: "+postsig+" Bias: "+bias);
+			System.out.println("value: "+zvalue+" Post Sig: "+avalue+" Bias: "+bias);
 			System.out.print("Weights: ");
 			for (int i=0;i<forwardweight.length;i++){
 				System.out.print(forwardweight[i]+" ");
@@ -81,7 +86,7 @@ public class net{
 		}
 		
 		void setvalue(double newvalue){
-			value = newvalue;
+			zvalue = newvalue;
 		}
 		
 		void setbias(double newbias){
@@ -89,7 +94,7 @@ public class net{
 		}
 		
 		double getvalue(){
-			return value;
+			return zvalue;
 		}
 		
 		double getbias(){
@@ -154,6 +159,16 @@ public class net{
 	
 	net(int arr[]){
 		alllayersize = arr;
+		allweight = new weightclass[alllayersize.length-1][][];
+		for (int i=1;i<alllayersize.length;i++){
+			allweight[i-1] = new weightclass[alllayersize[i]][alllayersize[i-1]];
+			for (int k=0;k<alllayersize[i];k++){
+				for (int l=0;l<alllayersize[i-1];l++){
+					allweight[i-1][k][l] = new weightclass();
+				}
+			}
+		}
+		
 		window.setSize(1000, 1000);
 		window.setTitle("VISUALIZATION");
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -275,7 +290,9 @@ public class net{
 									double slope = (double)(y1-y2)/(double)(x1-x2);
 									double yinter = (y1-slope*x1);
 									double newx = x1+(x2-x1)/2-55;
-									grap.drawString("Weight: "+Math.round(100.0*layer[i].node[k].forwardweight[a])/100.0, (int)newx, (int)((newx)*slope+yinter));
+									grap.drawString("Weight: "+Math.round(100.0*allweight[i][a][k].weight)/100.0, (int)newx, (int)((newx)*slope+yinter));
+
+									//grap.drawString("Weight: "+Math.round(100.0*layer[i].node[k].forwardweight[a])/100.0, (int)newx, (int)((newx)*slope+yinter));
 								}
 							}
 							
@@ -287,7 +304,7 @@ public class net{
 					grap.setColor(active.color);
 					grap.fillOval(active.xpos, layer[i].node[k].ypos, sizenode, sizenode);
 					grap.setColor(Color.WHITE);
-					grap.drawString("Value: "+Math.round(100.0*layer[i].node[k].getvalue())/100.0+"("+Math.round(100.0*layer[i].node[k].postsig)/100.0+")", layer[i].node[k].xpos, 20+layer[i].node[k].ypos+sizenode);	
+					grap.drawString("Value: "+Math.round(100.0*layer[i].node[k].getvalue())/100.0+"("+Math.round(100.0*layer[i].node[k].avalue)/100.0+")", layer[i].node[k].xpos, 20+layer[i].node[k].ypos+sizenode);	
 				}
 			}
 			
@@ -346,17 +363,17 @@ public class net{
 		}
 		else{
 			for (int i=0;i<alllayersize[0];i++){
-				layer[0].node[i].value = lst[i];
+				layer[0].node[i].zvalue = lst[i];
 			}
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
 					if (i!=0){
-						layer[i].node[k].value+=layer[i].node[k].bias;
-						layer[i].node[k].postsig = sigmoid(layer[i].node[k].value);
+						layer[i].node[k].zvalue+=layer[i].node[k].bias;
+						layer[i].node[k].avalue = sigmoid(layer[i].node[k].zvalue);
 					}
 					if (i!=alllayersize.length-1){
 						for (int a=0;a<alllayersize[i+1];a++){
-							layer[i+1].node[a].value+=layer[i].node[k].value*layer[i].node[k].forwardweight[a];
+							layer[i+1].node[a].zvalue+=layer[i].node[k].zvalue*layer[i].node[k].forwardweight[a];
 						}
 					}
 					
@@ -370,7 +387,7 @@ public class net{
 	protected double[] getoutput(){
 		double output[] = new double[alllayersize[alllayersize.length-1]];
 		for (int i=0;i<alllayersize[alllayersize.length-1];i++){
-			output[i] = layer[alllayersize.length-1].node[i].value;
+			output[i] = layer[alllayersize.length-1].node[i].zvalue;
 		}
 		return output;
 	}
