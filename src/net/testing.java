@@ -6,17 +6,7 @@ public class testing {
 	double expected[][] = new double [60000][10];
 	
 	public static void main(String[] args) {
-		int arr[][] = new int[2][];
-		arr[0] = new int[1];
-		arr[1] = new int[2];
-		for (int i=0;i<arr.length;i++){
-			for (int k=0;k<arr[i].length;k++){
-				System.out.println(arr[i][k]);
-			}
-			System.out.println("HI");
-		}
-		System.out.println("WE GOOD");
-		int temp[] = {2,3};
+		int temp[] = {2,5,2};
 		test = new net(temp);
 		test.netprint();
 	}
