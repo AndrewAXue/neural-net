@@ -44,24 +44,27 @@ public class net{
 		return (1/(1+Math.exp(-x)));
 	}
 	
+	// derivative of the sigmoid function used in backpropagation
 	double sigmoidprime(double x){
 		return (Math.exp(-x))/(Math.pow(1+Math.exp(-x), 2));
 	}
-	
-	// Node in the neural net. Weights are stored in forwardweight, the value and bias are stored as doubles.
-	// drawweight determines if the weight of the output to the various nodes are shown, and the xpos and ypos
-	// stores where the node will be drawn on the window. The color of the node is a randomized "brighter" color.
-	
+		
+	// A weight in the neural net. This class will be stored in a 3d array of weights, where the first indice
+	// represents all the weights from indice to indice+1 layers, the second indice represents all the weights
+	// all the weights effecting the second indice node of the next layer, and the third indice representing the 
+	// node which input value is taken from the first layers[indice] node.
 	private class weightclass{
-		double weight=1;
+		double weight=23;
 		double partialdev=0;
 	}
-	
+		
+	// Node in the neural net. The value and bias are stored as doubles.
+		// drawweight determines if the weight of the output to the various nodes are shown, and the xpos and ypos
+		// stores where the node will be drawn on the window. The color of the node is a randomized "bright" color.
 	private class nodeclass{
 		double bias;
 		double zvalue = 0;
 		double avalue = 0;
-		double forwardweight[]={};
 		double derive = 0;
 		
 		boolean drawweight = true;
@@ -79,9 +82,6 @@ public class net{
 			System.out.println("Printing Node");
 			System.out.println("value: "+zvalue+" Post Sig: "+avalue+" Bias: "+bias);
 			System.out.print("Weights: ");
-			for (int i=0;i<forwardweight.length;i++){
-				System.out.print(forwardweight[i]+" ");
-			}
 			System.out.println();
 		}
 		
@@ -123,12 +123,6 @@ public class net{
 				node[i] = new nodeclass();
 				node[i].ypos = distfromtop+i*(visualdim/size);
 				node[i].xpos = distfromside+templayerind*(visualdim/alllayersize.length);
-				if (layerind!=alllayersize.length-1) {
-					node[i].forwardweight = new double[alllayersize[layerind+1]];
-					for (int k=0;k<alllayersize[layerind+1];k++){
-						node[i].forwardweight[k] = weightchoose.nextDouble();
-					}
-				}
 			}
 		}
 		
@@ -154,7 +148,6 @@ public class net{
 	FIRST_LINE_START	PAGE_START		FIRST_LINE_END
 	LINE_START			CENTER			LINE_END
 	LAST_LINE_START		PAGE_END		LAST_LINE_END
-
 	 */
 	
 	net(int arr[]){
@@ -168,6 +161,7 @@ public class net{
 				}
 			}
 		}
+		allweight[0][0][1].weight = 5;
 		
 		window.setSize(1000, 1000);
 		window.setTitle("VISUALIZATION");
@@ -273,31 +267,32 @@ public class net{
 			grap.setColor(Color.WHITE);
 			grap.setFont(new Font("Arial Black", Font.BOLD, 15));
 			
+			
+			for (int i=0;i<allweight.length;i++){
+				for (int k=0;k<allweight[i][0].length;k++){
+					nodeclass active = layer[i].node[k];
+					for (int a=0;a<allweight[i].length;a++){
+						grap.setColor(active.color);
+						int x1 = active.xpos+sizenode/2;
+						int y1 = active.ypos+sizenode/2;
+						int x2 = layer[i+1].node[a].xpos+sizenode/2;
+						int y2 = layer[i+1].node[a].ypos+sizenode/2;
+						grap.drawLine(x1,y1,x2,y2);
+						if (layer[i].node[k].drawweight){								
+							double slope = (double)(y1-y2)/(double)(x1-x2);
+							double yinter = (y1-slope*x1);
+							double newx = x1+(x2-x1)/2-55;
+							grap.drawString("Weight: "+Math.round(100.0*allweight[i][a][k].weight)/100.0, (int)newx, (int)((newx)*slope+yinter));
+						}	
+					}
+				}
+			}
+			
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
 					//Drawing lines between nodes that show connections. Also writes down the weight of the connection
 					nodeclass active = layer[i].node[k];
-					if (i!=numlayer-1){
-						for (int a=0;a<active.forwardweight.length;a++){
-							if (active.forwardweight[a]!=0){
-								grap.setColor(active.color);
-								int x1 = active.xpos+sizenode/2;
-								int y1 = active.ypos+sizenode/2;
-								int x2 = layer[i+1].node[a].xpos+sizenode/2;
-								int y2 = layer[i+1].node[a].ypos+sizenode/2;
-								grap.drawLine(x1,y1,x2,y2);
-								if (layer[i].node[k].drawweight){								
-									double slope = (double)(y1-y2)/(double)(x1-x2);
-									double yinter = (y1-slope*x1);
-									double newx = x1+(x2-x1)/2-55;
-									grap.drawString("Weight: "+Math.round(100.0*allweight[i][a][k].weight)/100.0, (int)newx, (int)((newx)*slope+yinter));
-
-									//grap.drawString("Weight: "+Math.round(100.0*layer[i].node[k].forwardweight[a])/100.0, (int)newx, (int)((newx)*slope+yinter));
-								}
-							}
-							
-						}
-					}
+					
 					grap.setColor(Color.WHITE);
 					//Drawing Stats: Bias + Value and the actual node
 					grap.drawString("Bias: "+Math.round(100.0*layer[i].node[k].getbias())/100.0, layer[i].node[k].xpos, layer[i].node[k].ypos);
@@ -363,20 +358,16 @@ public class net{
 		}
 		else{
 			for (int i=0;i<alllayersize[0];i++){
-				layer[0].node[i].zvalue = lst[i];
+				layer[0].node[i].avalue = layer[0].node[i].zvalue = lst[i];
 			}
-			for (int i=0;i<alllayersize.length;i++){
-				for (int k=0;k<alllayersize[i];k++){
-					if (i!=0){
-						layer[i].node[k].zvalue+=layer[i].node[k].bias;
-						layer[i].node[k].avalue = sigmoid(layer[i].node[k].zvalue);
+			for (int i=0;i<allweight.length;i++){
+				for (int k=0;k<allweight[i].length;k++){
+					double newz = 0;
+					for (int a=0;a<allweight[i][0].length;a++){
+						newz+=layer[i].node[a].avalue*allweight[i][k][a].weight;
 					}
-					if (i!=alllayersize.length-1){
-						for (int a=0;a<alllayersize[i+1];a++){
-							layer[i+1].node[a].zvalue+=layer[i].node[k].zvalue*layer[i].node[k].forwardweight[a];
-						}
-					}
-					
+					layer[i+1].node[k].zvalue = newz;
+					layer[i+1].node[k].avalue = sigmoid(layer[i+1].node[k].zvalue);
 				}
 			}
 			window.repaint();

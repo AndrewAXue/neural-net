@@ -16,7 +16,7 @@ public class testing {
 			System.out.println("HI");
 		}
 		System.out.println("WE GOOD");
-		int temp[] = {2,1,2};
+		int temp[] = {2,3};
 		test = new net(temp);
 		test.netprint();
 	}
