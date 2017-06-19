@@ -23,7 +23,7 @@ import javax.swing.JPanel;
 
 public class net{
 	JFrame window = new JFrame();
-	layerclass layer[];
+	nodeclass allnode[][];
 	int alllayersize[];
 	weightclass  allweight[][][];
 	int numlayer;
@@ -55,7 +55,7 @@ public class net{
 	// node which input value is taken from the first layers[indice] node.
 	private class weightclass{
 		double weight=23;
-		double partialdev=0;
+		double weightdev=0;
 	}
 		
 	// Node in the neural net. The value and bias are stored as doubles.
@@ -65,17 +65,15 @@ public class net{
 		double bias;
 		double zvalue = 0;
 		double avalue = 0;
-		double derive = 0;
+		double biasdev = 0;
 		
-		boolean drawweight = true;
+		boolean drawweight;
 		
 		int xpos,ypos;
-		
 		Color color = new Color((float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5));
 
 		nodeclass(){
-			bias=0;
-			//bias = biaschoose.nextDouble()*10-5;
+			bias = biaschoose.nextDouble()*10-5;
 		}
 		
 		void printnode(){
@@ -110,29 +108,6 @@ public class net{
 		}
 	}
 	
-	private class layerclass{
-		nodeclass node[];
-		int size;
-		int layerind;
-		layerclass(int templayerind, int tempsize){
-			//System.out.println("Making layer of size: "+tempsize);
-			size = tempsize;
-			layerind = templayerind;
-			node = new nodeclass[size];
-			for (int i=0;i<size;i++){
-				node[i] = new nodeclass();
-				node[i].ypos = distfromtop+i*(visualdim/size);
-				node[i].xpos = distfromside+templayerind*(visualdim/alllayersize.length);
-			}
-		}
-		
-		void layerprint(){
-			System.out.println("Printing layer");
-			for (int i=0;i<size;i++){
-				node[i].printnode();
-			}
-		}
-	}
 	
 	/*
 	cons.fill = GridBagConstraints.HORIZONTAL;
@@ -242,13 +217,13 @@ public class net{
 		
 		
 		numlayer = arr.length;
-		layer = new layerclass[numlayer];
-		for (int i=0;i<alllayersize.length;i++){
-			layer[i] = new layerclass(i,arr[i]);
-			if (i==0){
-				for (int k=0;k<arr[0];k++){
-					layer[0].node[k].bias = 0;
-				}
+		allnode = new nodeclass[numlayer][];
+		for (int i=0;i<numlayer;i++){
+			allnode[i] = new nodeclass[alllayersize[i]];
+			for (int k=0;k<alllayersize[i];k++){
+				allnode[i][k] = new nodeclass();
+				allnode[i][k].ypos = distfromtop+k*(visualdim/alllayersize[i]);
+				allnode[i][k].xpos = distfromside+i*(visualdim/alllayersize.length);
 			}
 		}
 	}
@@ -270,15 +245,15 @@ public class net{
 			
 			for (int i=0;i<allweight.length;i++){
 				for (int k=0;k<allweight[i][0].length;k++){
-					nodeclass active = layer[i].node[k];
+					nodeclass active = allnode[i][k];
 					for (int a=0;a<allweight[i].length;a++){
 						grap.setColor(active.color);
 						int x1 = active.xpos+sizenode/2;
 						int y1 = active.ypos+sizenode/2;
-						int x2 = layer[i+1].node[a].xpos+sizenode/2;
-						int y2 = layer[i+1].node[a].ypos+sizenode/2;
+						int x2 = allnode[i+1][a].xpos+sizenode/2;
+						int y2 = allnode[i+1][a].ypos+sizenode/2;
 						grap.drawLine(x1,y1,x2,y2);
-						if (layer[i].node[k].drawweight){								
+						if (allnode[i][k].drawweight){								
 							double slope = (double)(y1-y2)/(double)(x1-x2);
 							double yinter = (y1-slope*x1);
 							double newx = x1+(x2-x1)/2-55;
@@ -291,15 +266,15 @@ public class net{
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
 					//Drawing lines between nodes that show connections. Also writes down the weight of the connection
-					nodeclass active = layer[i].node[k];
+					nodeclass active = allnode[i][k];
 					
 					grap.setColor(Color.WHITE);
 					//Drawing Stats: Bias + Value and the actual node
-					grap.drawString("Bias: "+Math.round(100.0*layer[i].node[k].getbias())/100.0, layer[i].node[k].xpos, layer[i].node[k].ypos);
+					grap.drawString("Bias: "+Math.round(100.0*allnode[i][k].getbias())/100.0, allnode[i][k].xpos, allnode[i][k].ypos);
 					grap.setColor(active.color);
-					grap.fillOval(active.xpos, layer[i].node[k].ypos, sizenode, sizenode);
+					grap.fillOval(active.xpos, allnode[i][k].ypos, sizenode, sizenode);
 					grap.setColor(Color.WHITE);
-					grap.drawString("Value: "+Math.round(100.0*layer[i].node[k].getvalue())/100.0+"("+Math.round(100.0*layer[i].node[k].avalue)/100.0+")", layer[i].node[k].xpos, 20+layer[i].node[k].ypos+sizenode);	
+					grap.drawString("Value: "+Math.round(100.0*allnode[i][k].getvalue())/100.0+"("+Math.round(100.0*allnode[i][k].avalue)/100.0+")", allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);	
 				}
 			}
 			
@@ -313,8 +288,11 @@ public class net{
 	
 	// Prints out the weights and biases of all the nodes of the net
 	void netprint(){
-		for (int i=0;i<numlayer;i++){
-			layer[i].layerprint();
+		for (int i=0;i<alllayersize.length;i++){
+			System.out.println("Printing layer "+i);
+			for (int k=0;k<alllayersize[i];k++){
+				allnode[i][k].printnode();
+			}
 		}
 	}
 	
@@ -334,7 +312,7 @@ public class net{
 			boolean done = false;
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
-					nodeclass active = layer[i].node[k];
+					nodeclass active = allnode[i][k];
 					if (collision(active.getx(),active.gety(),e.getX(),e.getY(),sizenode,0)){
 						active.drawweight = !active.drawweight;
 						window.repaint();
@@ -358,16 +336,16 @@ public class net{
 		}
 		else{
 			for (int i=0;i<alllayersize[0];i++){
-				layer[0].node[i].avalue = layer[0].node[i].zvalue = lst[i];
+				allnode[0][i].avalue = allnode[0][i].zvalue = lst[i];
 			}
 			for (int i=0;i<allweight.length;i++){
 				for (int k=0;k<allweight[i].length;k++){
 					double newz = 0;
 					for (int a=0;a<allweight[i][0].length;a++){
-						newz+=layer[i].node[a].avalue*allweight[i][k][a].weight;
+						newz+=allnode[i][a].avalue*allweight[i][k][a].weight;
 					}
-					layer[i+1].node[k].zvalue = newz;
-					layer[i+1].node[k].avalue = sigmoid(layer[i+1].node[k].zvalue);
+					allnode[i+1][k].zvalue = newz+allnode[i+1][k].bias;
+					allnode[i+1][k].avalue = sigmoid(allnode[i+1][k].zvalue);
 				}
 			}
 			window.repaint();
@@ -378,7 +356,7 @@ public class net{
 	protected double[] getoutput(){
 		double output[] = new double[alllayersize[alllayersize.length-1]];
 		for (int i=0;i<alllayersize[alllayersize.length-1];i++){
-			output[i] = layer[alllayersize.length-1].node[i].zvalue;
+			output[i] = allnode[alllayersize.length-1][i].zvalue;
 		}
 		return output;
 	}
