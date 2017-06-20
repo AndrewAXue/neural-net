@@ -6,7 +6,7 @@ public class testing {
 	double expected[][] = new double [60000][10];
 	
 	public static void main(String[] args) {
-		int temp[] = {2,5,2};
+		int temp[] = {1,2,1};
 		test = new net(temp);
 		test.netprint();
 	}

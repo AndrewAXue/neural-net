@@ -25,7 +25,7 @@ public class net{
 	JFrame window = new JFrame();
 	nodeclass allnode[][];
 	int alllayersize[];
-	weightclass  allweight[][][];
+	weightclass  allweight[][][]; 
 	int numlayer;
 	Random weightchoose = new Random();
 	Random biaschoose = new Random();
@@ -67,7 +67,7 @@ public class net{
 		double avalue = 0;
 		double biasdev = 0;
 		
-		boolean drawweight;
+		boolean drawweight=true;
 		
 		int xpos,ypos;
 		Color color = new Color((float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5));
@@ -136,7 +136,6 @@ public class net{
 				}
 			}
 		}
-		allweight[0][0][1].weight = 5;
 		
 		window.setSize(1000, 1000);
 		window.setTitle("VISUALIZATION");
@@ -222,6 +221,9 @@ public class net{
 			allnode[i] = new nodeclass[alllayersize[i]];
 			for (int k=0;k<alllayersize[i];k++){
 				allnode[i][k] = new nodeclass();
+				if (i==0){
+					allnode[i][k].bias=0;
+				}
 				allnode[i][k].ypos = distfromtop+k*(visualdim/alllayersize[i]);
 				allnode[i][k].xpos = distfromside+i*(visualdim/alllayersize.length);
 			}
@@ -258,6 +260,7 @@ public class net{
 							double yinter = (y1-slope*x1);
 							double newx = x1+(x2-x1)/2-55;
 							grap.drawString("Weight: "+Math.round(100.0*allweight[i][a][k].weight)/100.0, (int)newx, (int)((newx)*slope+yinter));
+							grap.drawString("Weightdev: "+Math.round(100.0*allweight[i][a][k].weightdev)/100.0, (int)newx, (int)((newx)*slope+yinter+20));
 						}	
 					}
 				}
@@ -274,7 +277,8 @@ public class net{
 					grap.setColor(active.color);
 					grap.fillOval(active.xpos, allnode[i][k].ypos, sizenode, sizenode);
 					grap.setColor(Color.WHITE);
-					grap.drawString("Value: "+Math.round(100.0*allnode[i][k].getvalue())/100.0+"("+Math.round(100.0*allnode[i][k].avalue)/100.0+")", allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);	
+					grap.drawString("Value: "+Math.round(100.0*allnode[i][k].getvalue())/100.0+"("+Math.round(100.0*allnode[i][k].avalue)/100.0+")", allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);
+					grap.drawString("Biasdev: "+Math.round(100.0*allnode[i][k].biasdev)/100.0, allnode[i][k].xpos, 40+allnode[i][k].ypos+sizenode);	
 				}
 			}
 			
@@ -288,6 +292,11 @@ public class net{
 	
 	// Prints out the weights and biases of all the nodes of the net
 	void netprint(){
+		System.out.println(alllayersize.length+" Layers");
+		for (int i=0;i<alllayersize.length;i++){
+			System.out.print(alllayersize[i]+" ");
+		}
+		System.out.println();
 		for (int i=0;i<alllayersize.length;i++){
 			System.out.println("Printing layer "+i);
 			for (int k=0;k<alllayersize[i];k++){
@@ -306,7 +315,7 @@ public class net{
 		public void mouseClicked(MouseEvent e) {
 			System.out.println(e.getPoint());
 			if (e.getX()<50){
-				double lst[] = {1,1};
+				double lst[] = {1};
 				feedforward(lst);
 			}
 			boolean done = false;
@@ -359,6 +368,20 @@ public class net{
 			output[i] = allnode[alllayersize.length-1][i].zvalue;
 		}
 		return output;
+	}
+	
+	//Backpropagates errors through the neural net. At the date this was written, the assumed cost function
+	//is the quadratic cost function, and all derivatives will reflect this. This first calculates the 
+	//partial derivative of all the weights and biases, and returns the gradient. This gradient should then
+	//be averaged over the number of inputs.
+	protected void backpropagate(){
+		double error[][] = new double[numlayer][];
+		for (int i=0;i<numlayer;i++){
+			error[i] = new double[alllayersize[i]];
+		}
+		for (int i=0;i<alllayersize[numlayer-1];i++){
+			
+		}
 	}
 	
 	//Using backpropagation, each of the weights and bias's are assigned error value. Altogether making a gradient. 
