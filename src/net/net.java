@@ -30,6 +30,7 @@ public class net{
 	double error[][];
 	boolean backprop = false;
 	int numlayer;
+	double learning_rate = 150;
 	Random weightchoose = new Random();
 	Random biaschoose = new Random();
 	
@@ -57,14 +58,15 @@ public class net{
 	// all the weights effecting the second indice node of the next layer, and the third indice representing the 
 	// node which input value is taken from the first layers[indice] node.
 	private class weightclass{
-		double weight=weightchoose.nextDouble();
+		//double weight=weightchoose.nextDouble()*2-1;
+		double weight = weightchoose.nextInt(10)-5;
 		double weightdev;
 	}
 		
 	// Node in the neural net. The value and bias are stored as doubles.
 		// drawweight determines if the weight of the output to the various nodes are shown, and the xpos and ypos
 		// stores where the node will be drawn on the window. The color of the node is a randomized "bright" color.
-	private class nodeclass{
+	protected class nodeclass{
 		double bias;
 		double zvalue = 0;
 		double avalue = 0;
@@ -76,13 +78,12 @@ public class net{
 		Color color = new Color((float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5));
 
 		nodeclass(){
-			bias = biaschoose.nextDouble()*10-5;
+			bias = biaschoose.nextInt(10)-5;
 		}
 		
 		void printnode(){
 			System.out.println("Printing Node");
 			System.out.println("value: "+zvalue+" Post Sig: "+avalue+" Bias: "+bias);
-			System.out.print("Weights: ");
 			System.out.println();
 		}
 		
@@ -95,7 +96,7 @@ public class net{
 		}
 		
 		double getvalue(){
-			return zvalue;
+			return avalue;
 		}
 		
 		double getbias(){
@@ -222,7 +223,6 @@ public class net{
 		window.add(everything);
 		window.setVisible(true);
 		
-		
 		numlayer = arr.length;
 		allnode = new nodeclass[numlayer][];
 		for (int i=0;i<numlayer;i++){
@@ -234,6 +234,16 @@ public class net{
 				}
 				allnode[i][k].ypos = distfromtop+k*(visualdim/alllayersize[i]);
 				allnode[i][k].xpos = distfromside+i*(visualdim/alllayersize.length);
+			}
+		}
+		
+		for (int i=0;i<allweight.length;i++){
+			System.out.println("Printing layer "+i);
+			for (int k=0;k<allweight[i].length;k++){
+				for (int j=0;j<allweight[i][k].length;j++){
+					System.out.print(allweight[i][k][j].weight+" ");
+				}
+				System.out.println();
 			}
 		}
 	}
@@ -267,8 +277,8 @@ public class net{
 							double slope = (double)(y1-y2)/(double)(x1-x2);
 							double yinter = (y1-slope*x1);
 							double newx = x1+(x2-x1)/2-55;
-							grap.drawString("Weight: "+Math.round(100.0*allweight[i][a][k].weight)/100.0, (int)newx, (int)((newx)*slope+yinter));
-							if (backprop)grap.drawString("Weightdev: "+Math.round(100.0*allweight[i][a][k].weightdev)/100.0, (int)newx, (int)((newx)*slope+yinter+20));
+							grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
+							if (backprop)grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
 						}	
 					}
 				}
@@ -281,13 +291,13 @@ public class net{
 					
 					grap.setColor(Color.WHITE);
 					//Drawing Stats: Bias + Value and the actual node
-					grap.drawString("Bias: "+Math.round(100.0*allnode[i][k].getbias())/100.0, allnode[i][k].xpos, allnode[i][k].ypos);
+					grap.drawString("Bias: "+Math.round(1000000.0*allnode[i][k].getbias())/1000000.0, allnode[i][k].xpos, allnode[i][k].ypos);
 					grap.setColor(active.color);
 					grap.fillOval(active.xpos, allnode[i][k].ypos, sizenode, sizenode);
 					grap.setColor(Color.WHITE);
-					grap.drawString("Value: "+Math.round(100.0*allnode[i][k].getvalue())/100.0+"("+Math.round(100.0*allnode[i][k].avalue)/100.0+")", allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);
-					if (backprop)grap.drawString("Biasdev: "+Math.round(100.0*allnode[i][k].biasdev)/100.0, allnode[i][k].xpos, 40+allnode[i][k].ypos+sizenode);	
-					if (backprop)grap.drawString("Error: "+Math.round(100.0*error[i][k])/100.0, allnode[i][k].xpos, 60+allnode[i][k].ypos+sizenode);	
+					grap.drawString("Value: "+Math.round(1000000.0*allnode[i][k].getvalue())/1000000.0+"("+Math.round(1000000.0*allnode[i][k].avalue)/1000000.0+")", allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);
+					if (backprop)grap.drawString("Biasdev: "+Math.round(1000000.0*allnode[i][k].biasdev)/1000000.0, allnode[i][k].xpos, 40+allnode[i][k].ypos+sizenode);	
+					if (backprop)grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, allnode[i][k].xpos, 60+allnode[i][k].ypos+sizenode);	
 				}
 			}
 			
@@ -319,25 +329,42 @@ public class net{
 		return (x1+siz1>=x2&&x1<=x2+siz2&&y1+siz1>=y2&&y1<=y2+siz2);
 	}
 	
+	static double func(double x){
+		return 3*x+5;
+	}
+	
 	private class mouseevent implements MouseListener{
 		// Toggles whether the weights of a certain node should be shown. Done by clicking the node.
 		public void mouseClicked(MouseEvent e) {
 			System.out.println(e.getPoint());
 			if (e.getX()<50){
-				double lst[] = new double[alllayersize[0]];
+				double rand = weightchoose.nextInt(10);
+				double lst[] = {rand};
+				double exp[] = {func(rand)/1000.0};
+				/*double lst[] = new double[alllayersize[0]];
 				for (int i=0;i<lst.length;i++){
-					lst[i] = -1;
+					lst[i] = 0;
 				}
 				double exp[] = new double[alllayersize[numlayer-1]];
 				for (int i=0;i<exp.length;i++){
-					exp[i] = 99;
+					exp[i] = 5;
 				}
 				System.out.println("called");
+				*/
+				System.out.print("input is");
+				for (int i=0;i<lst.length;i++){
+					System.out.print(i+" ");
+				}
+				System.out.println();
 				feedforward(lst,exp);
 				window.repaint();
 			}
 			if (e.getY()<50){
 				backpropagate();
+				window.repaint();
+			}
+			if (e.getX()>850){
+				gradient_descent();
 				window.repaint();
 			}
 			boolean done = false;
@@ -406,7 +433,7 @@ public class net{
 		for (int i=0;i<alllayersize[numlayer-1];i++){
 			error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
 			allnode[numlayer-1][i].biasdev = error[numlayer-1][i];
-			System.out.println(sigmoidprime(allnode[numlayer-1][i].zvalue));
+			//System.out.println(sigmoidprime(allnode[numlayer-1][i].zvalue));
 		}
 		for (int i=numlayer-2;i>=0;i--){
 			
@@ -415,7 +442,7 @@ public class net{
 				for (int a=0;a<alllayersize[i+1];a++){
 					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime(allnode[i][k].zvalue);
 				}
-				System.out.println(newerror);	
+				//System.out.println(newerror);	
 				error[i][k] = newerror;
 				allnode[i][k].biasdev = error[i][k];
 			}
@@ -427,13 +454,25 @@ public class net{
 				}
 			}
 		}
+		window.repaint();
 	}
 	
-	//Using backpropagation, each of the weights and bias's are assigned error value. Altogether making a gradient. 
-	protected void backpropagate(double cost){
-		
+	// Adjusts all the weights and biases using (stochastic) gradient descent. Must be called after back-
+	// propagation is called. 
+	protected void gradient_descent(){
+		//Updating biases
+		for (int i=1;i<numlayer;i++){
+			for (int k=0;k<alllayersize[i];k++){
+				allnode[i][k].bias-=learning_rate*allnode[i][k].biasdev;
+			}
+		}
+		for (int i=0;i<numlayer-1;i++){
+			for (int k=0;k<allweight[i].length;k++){
+				for (int a=0;a<allweight[i][0].length;a++){
+					allweight[i][k][a].weight-=learning_rate*allweight[i][k][a].weightdev;
+				}
+			}
+		}
+		window.repaint();
 	}
-	
-	
-	
 }

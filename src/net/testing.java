@@ -1,14 +1,32 @@
 package net;
 
+import java.util.Random;
+
 public class testing {
 	static net test;
 	double dataset[][] = new double[60000][782];
 	double expected[][] = new double [60000][10];
+	static Random xpick = new Random();
+	static double func(double x){
+		return -3*Math.pow(x, 3)+4*Math.pow(x,2)+3*x+5;
+	}
 	
 	public static void main(String[] args) {
-		int temp[] = {3,1,1};
+		//y = 3x+5;
+		int temp[] = {1,9,1};
 		test = new net(temp);
-		test.netprint();
+		
+		for (int i=0;i<10000000;i++){
+			int x = xpick.nextInt(10);
+			double lst[] = {x};
+			double exp[] = {func(x)/1000.0};
+			test.feedforward(lst, exp);
+			test.backpropagate();
+			test.gradient_descent();
+			System.out.println(test.error[2][0]);
+		}
+		
+		//test.netprint();
 	}
 	
 	private double cost(int ind, int numinp){
