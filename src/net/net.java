@@ -7,36 +7,51 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Image;
 import java.awt.Insets;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
 import java.util.Random;
-
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 
+
+//TODO
+//Softmax
+//Cross entropy cost function
+//Matrix matrix multiplication for batches
+//Improve UI
 public class net{
-	JFrame window = new JFrame();
-	nodeclass allnode[][];
-	int alllayersize[];
-	weightclass  allweight[][][]; 
-	double expected[];
-	double error[][];
-	boolean backprop = false;
-	int numlayer;
 	double learning_rate = 0.15;
+	
+	// Control if visualization appears
+	boolean visual = true;
+	
+	//Window for VISUALIZATION
+	JFrame window = new JFrame();
+	//Number of layers and size of each one
+	int numlayer;
+	int alllayersize[];
+	
+	//Properties of each node
+	nodeclass allnode[][];
+	//Randoms for choosing initial values for nodes
 	Random weightchoose = new Random();
 	Random biaschoose = new Random();
-	boolean auto = false;
-	
 	Random colorpick = new Random();
 	
+	//Weights of all the weights
+	weightclass  allweight[][][];
+	
+	//Error of each node (backpropagation)
+	double error[][];
+	//Expected vector
+	double expected[];
+	//Determines if automatic testing is running
+	boolean auto = false;
+	//Size of VISUALIZATION
 	int visualdim = 900;
 	
 	//BELOW VARIABLES ARE FOR USE IN THE VISUALIZTION
@@ -130,8 +145,16 @@ public class net{
 	LAST_LINE_START		PAGE_END		LAST_LINE_END
 	 */
 	
+	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
+	// starts visualization.
 	net(int arr[]){
 		alllayersize = arr;
+		numlayer = arr.length;
+		// Creating an error matrix
+		error = new double[numlayer][];
+		for (int i=0;i<numlayer;i++){
+			error[i] = new double[alllayersize[i]];
+		}
 		for (int i=0;i<arr.length;i++){
 			if (arr[i]==0){
 				throw new RuntimeException("No layers should have 0 nodes.");
@@ -146,85 +169,85 @@ public class net{
 				}
 			}
 		}
+		if (visual){
+			window.setSize(1000, 1000);
+			window.setTitle("VISUALIZATION");
+			window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+			window.setResizable(false);
+			
+			window.setIconImage(new ImageIcon("neural.jpg").getImage());
+			
+			JPanel everything = new JPanel(new GridBagLayout());
+			GridBagConstraints cons = new GridBagConstraints();
+			
+			
+			JPanel visuals = new JPanel();
+			visuals.setBackground(Color.BLACK);
+			visuals.add(new visualization());
+			visuals.addMouseListener(new mouseevent());
+			
+			cons.fill = GridBagConstraints.NONE;
+			cons.weightx = 0;
+			cons.weighty = 0;
+			cons.ipadx = visualdim;
+			cons.ipady = visualdim;
+			cons.gridx = 0;
+			cons.gridy = 1;
+			cons.anchor = GridBagConstraints.LINE_START;
+			cons.insets = new Insets(0,0,0,0);		
+			everything.add(visuals,cons);
+			
+			JPanel stats = new JPanel();
+			stats.setBackground(Color.PINK);
+			
+			cons.fill = GridBagConstraints.BOTH;
+			cons.weightx = 1;
+			cons.weighty = 1;
+			cons.ipadx = 0;
+			cons.ipady = 30;
+			cons.gridx = 0;
+			cons.gridy = 0;
+			cons.anchor = GridBagConstraints.PAGE_START;
+			cons.insets = new Insets(0,0,0,0);
+			
+			everything.add(stats,cons);
+			
+			
+			JPanel downfill = new JPanel();
+			downfill.setBackground(Color.BLUE);
+			
+			
+			cons.fill = GridBagConstraints.BOTH;
+			cons.weightx = 1;
+			cons.weighty = 1;
+			cons.ipadx = 0;
+			cons.ipady = 30;
+			cons.gridx = 0;
+			cons.gridy = 2;
+			cons.anchor = GridBagConstraints.PAGE_START;
+			cons.insets = new Insets(0,0,0,0);
+			everything.add(downfill,cons);
+			
+			
+			JPanel rightfill = new JPanel();
+			rightfill.setBackground(Color.ORANGE);
 		
-		window.setSize(1000, 1000);
-		window.setTitle("VISUALIZATION");
-		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		window.setResizable(false);
-		
-		window.setIconImage(new ImageIcon("neural.jpg").getImage());
-		
-		JPanel everything = new JPanel(new GridBagLayout());
-		GridBagConstraints cons = new GridBagConstraints();
-		
-		
-		JPanel visuals = new JPanel();
-		visuals.setBackground(Color.BLACK);
-		visuals.add(new visualization());
-		visuals.addMouseListener(new mouseevent());
-		
-		cons.fill = GridBagConstraints.NONE;
-		cons.weightx = 0;
-		cons.weighty = 0;
-		cons.ipadx = visualdim;
-		cons.ipady = visualdim;
-		cons.gridx = 0;
-		cons.gridy = 1;
-		cons.anchor = GridBagConstraints.LINE_START;
-		cons.insets = new Insets(0,0,0,0);		
-		everything.add(visuals,cons);
-		
-		JPanel stats = new JPanel();
-		stats.setBackground(Color.PINK);
-		
-		cons.fill = GridBagConstraints.BOTH;
-		cons.weightx = 1;
-		cons.weighty = 1;
-		cons.ipadx = 0;
-		cons.ipady = 30;
-		cons.gridx = 0;
-		cons.gridy = 0;
-		cons.anchor = GridBagConstraints.PAGE_START;
-		cons.insets = new Insets(0,0,0,0);
-		
-		everything.add(stats,cons);
-		
-		
-		JPanel downfill = new JPanel();
-		downfill.setBackground(Color.BLUE);
-		
-		
-		cons.fill = GridBagConstraints.BOTH;
-		cons.weightx = 1;
-		cons.weighty = 1;
-		cons.ipadx = 0;
-		cons.ipady = 30;
-		cons.gridx = 0;
-		cons.gridy = 2;
-		cons.anchor = GridBagConstraints.PAGE_START;
-		cons.insets = new Insets(0,0,0,0);
-		everything.add(downfill,cons);
-		
-		
-		JPanel rightfill = new JPanel();
-		rightfill.setBackground(Color.ORANGE);
-	
-		
-		cons.fill = GridBagConstraints.BOTH;
-		cons.weightx = 1;
-		cons.weighty = 1;
-		cons.ipadx = 1000-visualdim;
-		cons.ipady = 0;
-		cons.gridx = 1;
-		cons.gridy = 1;
-		cons.anchor = GridBagConstraints.PAGE_START;
-		cons.insets = new Insets(0,0,0,0);
-		everything.add(rightfill,cons);
-		
-		window.add(everything);
-		window.setVisible(true);
-		
-		numlayer = arr.length;
+			
+			cons.fill = GridBagConstraints.BOTH;
+			cons.weightx = 1;
+			cons.weighty = 1;
+			cons.ipadx = 1000-visualdim;
+			cons.ipady = 0;
+			cons.gridx = 1;
+			cons.gridy = 1;
+			cons.anchor = GridBagConstraints.PAGE_START;
+			cons.insets = new Insets(0,0,0,0);
+			everything.add(rightfill,cons);
+			
+			window.add(everything);
+			window.setVisible(true);
+		} 
+			
 		allnode = new nodeclass[numlayer][];
 		for (int i=0;i<numlayer;i++){
 			allnode[i] = new nodeclass[alllayersize[i]];
@@ -263,7 +286,7 @@ public class net{
 			grap.setColor(Color.WHITE);
 			grap.setFont(new Font("Arial Black", Font.BOLD, 15));
 			
-			
+			//Painting various elements of the VISUALIZATION
 			for (int i=0;i<allweight.length;i++){
 				for (int k=0;k<allweight[i][0].length;k++){
 					nodeclass active = allnode[i][k];
@@ -273,13 +296,15 @@ public class net{
 						int y1 = active.ypos+sizenode/2;
 						int x2 = allnode[i+1][a].xpos+sizenode/2;
 						int y2 = allnode[i+1][a].ypos+sizenode/2;
+						//Creating lines between nodes where there are weights
 						grap.drawLine(x1,y1,x2,y2);
 						if (allnode[i][k].drawweight){								
 							double slope = (double)(y1-y2)/(double)(x1-x2);
 							double yinter = (y1-slope*x1);
 							double newx = x1+(x2-x1)/2-55;
+							// Writing properties of the weights approximately halfway between the layers
 							grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
-							if (backprop)grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
+							grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
 						}	
 					}
 				}
@@ -287,25 +312,20 @@ public class net{
 			
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
-					//Drawing lines between nodes that show connections. Also writes down the weight of the connection
 					nodeclass active = allnode[i][k];
 					
 					grap.setColor(Color.WHITE);
 					//Drawing Stats: Bias + Value and the actual node
 					grap.drawString("Bias: "+Math.round(1000000.0*allnode[i][k].getbias())/1000000.0, allnode[i][k].xpos, allnode[i][k].ypos);
 					grap.setColor(active.color);
-					grap.fillOval(active.xpos, allnode[i][k].ypos, sizenode, sizenode);
+					//Drawing the actual node
+					grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
 					grap.setColor(Color.WHITE);
-					if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*allnode[i][k].zvalue)/1000000.0+"("+Math.round(1000000.0*allnode[i][k].avalue)/1000000.0+")", allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);
-					else grap.drawString("Value: "+Math.round(1000000.0*allnode[i][k].zvalue)/1000000.0, allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);
-					if (backprop)grap.drawString("Biasdev: "+Math.round(1000000.0*allnode[i][k].biasdev)/1000000.0, allnode[i][k].xpos, 40+allnode[i][k].ypos+sizenode);	
-					if (backprop)grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, allnode[i][k].xpos, 60+allnode[i][k].ypos+sizenode);	
-				}
-			}
-			
-			for (int i=0;i<alllayersize.length;i++){
-				for (int k=0;k<alllayersize[i];k++){
-									
+					//Writing down characteristics of the node including the value pre and post sigmoid function, the partial derivative of the bias and error
+					if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
+					else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);
+					grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, 40+active.ypos+sizenode);	
+					grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 60+active.ypos+sizenode);	
 				}
 			}
 		}
@@ -326,23 +346,22 @@ public class net{
 		}
 	}
 	
-	// Outputs whether the coordinates of two objects collide with each other.
+	// Outputs whether the coordinates of two (rectangular)objects collide with each other.
 	boolean collision(int x1, int y1, int x2, int y2,int siz1, int siz2){
 		return (x1+siz1>=x2&&x1<=x2+siz2&&y1+siz1>=y2&&y1<=y2+siz2);
 	}
 	
-	static double func(double x){
-		return 3*x+5;
-	}
-	
+	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	public void feed(){
+		//double rand = 0.5;
 		double rand = weightchoose.nextDouble();
 		//equation is 3x^2-5x+6
 		double lst[] = {rand};
-		double exp[] = {(3*Math.pow(rand, 2)-5*rand+6)/1000.0};
+		double exp[] = {rand};
 		feedforward(lst,exp);
 	}
 	
+	// Clears all the partial derivatives. Should be called after gradient descent
 	private void cleardev(){
 		for (int i=0;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
@@ -438,14 +457,17 @@ public class net{
 				}
 			}
 		}
-		System.out.print("Cost: "+Math.pow((expected[0]-allnode[2][0].avalue),2)/2);
+		System.out.print("Expected: "+expected[0]);
+		System.out.printf("Act: %f",getoutput()[0]);
+		System.out.println();
+		System.out.println("Cost: "+Math.pow((expected[0]-getoutput()[0]),2)/2);
 	}
 	
 	//Returns the output layer of the net. Should be called after a feedforward is called.
 	protected double[] getoutput(){
 		double output[] = new double[alllayersize[alllayersize.length-1]];
 		for (int i=0;i<alllayersize[alllayersize.length-1];i++){
-			output[i] = allnode[alllayersize.length-1][i].zvalue;
+			output[i] = allnode[alllayersize.length-1][i].avalue;
 		}
 		return output;
 	}
@@ -456,11 +478,6 @@ public class net{
 	//be averaged over the number of inputs.
 	//The notations BPX refer to the specific fundemental backpropagation algorithms
 	protected void backpropagate(){
-		backprop = true;
-		error = new double[numlayer][];
-		for (int i=0;i<numlayer;i++){
-			error[i] = new double[alllayersize[i]];
-		}
 		//BP1
 		for (int i=0;i<alllayersize[numlayer-1];i++){
 			error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
@@ -510,7 +527,7 @@ public class net{
 				}
 			}
 		}
-		//cleardev();
+		cleardev();
 		window.repaint();
 	}
 }

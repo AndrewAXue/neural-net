@@ -7,24 +7,21 @@ public class testing {
 	double dataset[][] = new double[60000][782];
 	double expected[][] = new double [60000][10];
 	static Random xpick = new Random();
-	static boolean autoa = false;
-	static double func(double x){
-		return -15*Math.pow(x, 4)-3*Math.pow(x, 3)+4*Math.pow(x,2)+3*x+5;
-	}
+	static boolean autoa = true;
 	
 	public static void main(String[] args) {
 		//y = 3x+5;
-		int temp[] = {1,3,1};
+		int temp[] = {1,50,1};
 		test = new net(temp);
 		test.auto = autoa;
 		if (test.auto){
-		for (int i=0;i<100;i++){
+		for (int i=0;i<1000;i++){
 			for (int k=0;k<10;k++){
-				test.feed();
-				test.backpropagate();
+					test.feed();
+					test.backpropagate();
+				}
+				test.gradient_descent(1);
 			}
-			test.gradient_descent(10);
-		}
 		}
 		
 		
