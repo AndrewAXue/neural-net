@@ -7,15 +7,11 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Image;
 import java.awt.Insets;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
 import java.util.Random;
-
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -130,8 +126,16 @@ public class net{
 	LAST_LINE_START		PAGE_END		LAST_LINE_END
 	 */
 	
+	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
+	// starts visualization.
 	net(int arr[]){
 		alllayersize = arr;
+		numlayer = arr.length;
+		// Creating an error matrix
+		error = new double[numlayer][];
+		for (int i=0;i<numlayer;i++){
+			error[i] = new double[alllayersize[i]];
+		}
 		for (int i=0;i<arr.length;i++){
 			if (arr[i]==0){
 				throw new RuntimeException("No layers should have 0 nodes.");
@@ -224,7 +228,6 @@ public class net{
 		window.add(everything);
 		window.setVisible(true);
 		
-		numlayer = arr.length;
 		allnode = new nodeclass[numlayer][];
 		for (int i=0;i<numlayer;i++){
 			allnode[i] = new nodeclass[alllayersize[i]];
@@ -331,15 +334,12 @@ public class net{
 		return (x1+siz1>=x2&&x1<=x2+siz2&&y1+siz1>=y2&&y1<=y2+siz2);
 	}
 	
-	static double func(double x){
-		return 3*x+5;
-	}
-	
 	public void feed(){
+		//double rand = 0.5;
 		double rand = weightchoose.nextDouble();
 		//equation is 3x^2-5x+6
 		double lst[] = {rand};
-		double exp[] = {(3*Math.pow(rand, 2)-5*rand+6)/1000.0};
+		double exp[] = {(3*Math.pow(rand, 2)-5*rand+6)/10.0};
 		feedforward(lst,exp);
 	}
 	
@@ -438,7 +438,10 @@ public class net{
 				}
 			}
 		}
-		System.out.print("Cost: "+Math.pow((expected[0]-allnode[2][0].avalue),2)/2);
+		System.out.print("Expected: "+expected[0]);
+		System.out.printf("Act: %f",allnode[2][0].avalue);
+		System.out.println();
+		System.out.println("Cost: "+Math.pow((expected[0]-allnode[2][0].avalue),2)/2);
 	}
 	
 	//Returns the output layer of the net. Should be called after a feedforward is called.
@@ -457,10 +460,6 @@ public class net{
 	//The notations BPX refer to the specific fundemental backpropagation algorithms
 	protected void backpropagate(){
 		backprop = true;
-		error = new double[numlayer][];
-		for (int i=0;i<numlayer;i++){
-			error[i] = new double[alllayersize[i]];
-		}
 		//BP1
 		for (int i=0;i<alllayersize[numlayer-1];i++){
 			error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
@@ -510,7 +509,7 @@ public class net{
 				}
 			}
 		}
-		//cleardev();
+		cleardev();
 		window.repaint();
 	}
 }
