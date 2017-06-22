@@ -11,7 +11,7 @@ public class testing {
 	
 	public static void main(String[] args) {
 		//y = 3x+5;
-		int temp[] = {1,50,5,10,1};
+		int temp[] = {1,50,1};
 		test = new net(temp);
 		test.auto = autoa;
 		if (test.auto){
