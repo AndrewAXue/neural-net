@@ -11,15 +11,15 @@ public class testing {
 	
 	public static void main(String[] args) {
 		//y = 3x+5;
-		int temp[] = {1,20,1};
+		int temp[] = {1,50,5,10,1};
 		test = new net(temp);
 		test.auto = autoa;
 		if (test.auto){
 		for (int i=0;i<1000;i++){
-			//for (int k=0;k<10;k++){
+			for (int k=0;k<10;k++){
 					test.feed();
 					test.backpropagate();
-				//}
+				}
 				test.gradient_descent(1);
 			}
 		}
