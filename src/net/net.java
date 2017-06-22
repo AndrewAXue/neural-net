@@ -33,6 +33,7 @@ public class net{
 	double learning_rate = 0.15;
 	Random weightchoose = new Random();
 	Random biaschoose = new Random();
+	boolean auto = false;
 	
 	Random colorpick = new Random();
 	
@@ -295,7 +296,8 @@ public class net{
 					grap.setColor(active.color);
 					grap.fillOval(active.xpos, allnode[i][k].ypos, sizenode, sizenode);
 					grap.setColor(Color.WHITE);
-					grap.drawString("Value: "+Math.round(1000000.0*allnode[i][k].getvalue())/1000000.0+"("+Math.round(1000000.0*allnode[i][k].avalue)/1000000.0+")", allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);
+					if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*allnode[i][k].zvalue)/1000000.0+"("+Math.round(1000000.0*allnode[i][k].avalue)/1000000.0+")", allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);
+					else grap.drawString("Value: "+Math.round(1000000.0*allnode[i][k].zvalue)/1000000.0, allnode[i][k].xpos, 20+allnode[i][k].ypos+sizenode);
 					if (backprop)grap.drawString("Biasdev: "+Math.round(1000000.0*allnode[i][k].biasdev)/1000000.0, allnode[i][k].xpos, 40+allnode[i][k].ypos+sizenode);	
 					if (backprop)grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, allnode[i][k].xpos, 60+allnode[i][k].ypos+sizenode);	
 				}
@@ -334,16 +336,17 @@ public class net{
 	}
 	
 	public void feed(){
-		double rand = weightchoose.nextInt(10);
+		double rand = weightchoose.nextDouble();
+		//equation is 3x^2-5x+6
 		double lst[] = {rand};
-		double exp[] = {0};
+		double exp[] = {(3*Math.pow(rand, 2)-5*rand+6)/1000.0};
 		feedforward(lst,exp);
 	}
 	
 	private void cleardev(){
 		for (int i=0;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
-				error[i][k] = 0;
+				//error[i][k] = 0;
 				allnode[i][k].biasdev = 0;
 				if (i!=numlayer-1){
 					for (int a=0;a<alllayersize[i+1];a++){
@@ -357,6 +360,10 @@ public class net{
 	private class mouseevent implements MouseListener{
 		// Toggles whether the weights of a certain node should be shown. Done by clicking the node.
 		public void mouseClicked(MouseEvent e) {
+			if (auto){
+				System.out.println("Automatic testing is running");
+				
+			}
 			System.out.println(e.getPoint());
 			if (e.isControlDown()){
 				cleardev();
@@ -431,6 +438,7 @@ public class net{
 				}
 			}
 		}
+		System.out.print("Cost: "+Math.pow((expected[0]-allnode[2][0].avalue),2)/2);
 	}
 	
 	//Returns the output layer of the net. Should be called after a feedforward is called.
@@ -446,6 +454,7 @@ public class net{
 	//is the quadratic cost function, and all derivatives will reflect this. This first calculates the 
 	//partial derivative of all the weights and biases, and returns the gradient. This gradient should then
 	//be averaged over the number of inputs.
+	//The notations BPX refer to the specific fundemental backpropagation algorithms
 	protected void backpropagate(){
 		backprop = true;
 		error = new double[numlayer][];
@@ -458,6 +467,7 @@ public class net{
 			allnode[numlayer-1][i].biasdev += error[numlayer-1][i];
 			//System.out.println(sigmoidprime(allnode[numlayer-1][i].zvalue));
 		}
+		//BP2
 		for (int i=numlayer-2;i>=0;i--){
 			for (int k=0;k<alllayersize[i];k++){
 				double newerror=0;
@@ -466,9 +476,11 @@ public class net{
 				}
 				//System.out.println(newerror);	
 				error[i][k] = newerror;
+				//BP3
 				allnode[i][k].biasdev += error[i][k];
 			}
 		}
+		//BP4
 		for (int i=0;i<numlayer-1;i++){
 			for (int k=0;k<alllayersize[i];k++){
 				for (int a=0;a<alllayersize[i+1];a++){
@@ -486,16 +498,19 @@ public class net{
 		for (int i=1;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
 				allnode[i][k].bias-=learning_rate/(double)batch_size*allnode[i][k].biasdev;
-				
+				//allnode[i][k].biasdev = 0;
 			}
 		}
+		//Updating weights
 		for (int i=0;i<numlayer-1;i++){
 			for (int k=0;k<allweight[i].length;k++){
 				for (int a=0;a<allweight[i][0].length;a++){
 					allweight[i][k][a].weight-=learning_rate/(double)batch_size*allweight[i][k][a].weightdev;
+					//allweight[i][k][a].weightdev = 0;
 				}
 			}
 		}
+		//cleardev();
 		window.repaint();
 	}
 }

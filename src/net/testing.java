@@ -7,7 +7,7 @@ public class testing {
 	double dataset[][] = new double[60000][782];
 	double expected[][] = new double [60000][10];
 	static Random xpick = new Random();
-	static boolean auto = true;
+	static boolean autoa = false;
 	static double func(double x){
 		return -15*Math.pow(x, 4)-3*Math.pow(x, 3)+4*Math.pow(x,2)+3*x+5;
 	}
@@ -16,14 +16,14 @@ public class testing {
 		//y = 3x+5;
 		int temp[] = {1,3,1};
 		test = new net(temp);
-		if (auto){
+		test.auto = autoa;
+		if (test.auto){
 		for (int i=0;i<100;i++){
 			for (int k=0;k<10;k++){
 				test.feed();
 				test.backpropagate();
 			}
 			test.gradient_descent(10);
-			System.out.println(test.error[2][0]);
 		}
 		}
 		
