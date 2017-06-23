@@ -27,13 +27,13 @@ import javax.swing.JPanel;
 //Improve UI
 //Handle layers with too many nodes
 public class net{
-	double learning_rate = 1;
+	double learning_rate = 5;
 	
 	//Scanner for CSV file
 	Scanner scanner;
 	
 	// Control if VISUALIZATION appears
-	boolean visual = true;
+	boolean visual = false;
 	
 	//Window for VISUALIZATION
 	JFrame window = new JFrame();

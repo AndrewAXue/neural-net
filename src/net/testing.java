@@ -19,7 +19,7 @@ public class testing {
 		int temp[] = {784,30,10};
 		test = new net(temp);
 		test.auto = autoa;
-		test.visual = true;
+		test.visual = false;
 		test.scanner = new Scanner(new File("/Users/andrew.xue/Downloads/train.csv"));
 		test.scanner.useDelimiter(",");
 		test.scanner.nextLine();
