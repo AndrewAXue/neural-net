@@ -14,41 +14,44 @@ public class testing {
 	
 	public static void main(String[] args) throws FileNotFoundException {
 		
-		Scanner scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
-        scanner.useDelimiter(",");
-        scanner.nextLine();
+		
        
 		int temp[] = {784,30,10};
 		test = new net(temp);
 		test.auto = autoa;
+		test.visual = true;
+		test.scanner = new Scanner(new File("/Users/andrew.xue/Downloads/train.csv"));
+		test.scanner.useDelimiter(",");
+		test.scanner.nextLine();
+		
 		int numiter = 1000;
 		if (test.auto){
 			for (int i=0;i<42;i++){
 				int please=0;
 				for (int k=0;k<numiter;k++){
-					String[] lst = scanner.nextLine().split(",");
+					String[] lst = test.scanner.nextLine().split(",");
 					int correct = Integer.parseInt(lst[0]);
+					//System.out.println(correct);
 					double ans[] = {0,0,0,0,0,0,0,0,0,0};
 					ans[correct] = 1;
-		        	double doublst[] = new double[784];
-		        	ans[0] = Double.parseDouble(lst[0]);
-		        	for (int a=0;a<784;a++){
-		        		doublst[a] = Double.parseDouble(lst[a+1]);
-		        	}
+			    	double doublst[] = new double[784];
+			    	for (int a=0;a<784;a++){
+			    		doublst[a] = Double.parseDouble(lst[a+1])/255;
+			    	}
 					test.feedforward(doublst,ans);
 					test.backpropagate();
 					double out[] = test.getoutput();
 					int maxind = 0;
 					for (int z=0;z<10;z++){
 						if (out[maxind]<out[z]){
-							maxind=i;
+							maxind=z;
 						}
 					}
 					if (maxind==correct){
 						please++;
 					}
 				}
-				System.out.println(i+" "+please);
+				System.out.println("PLEASE "+i+" "+please);
 				test.gradient_descent(numiter);
 			}
 		}
