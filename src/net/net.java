@@ -513,6 +513,23 @@ public class net{
 				window.repaint();
 			}
 			if (e.getY()>850){
+				feed();
+				backpropagate();
+				int maxind=0;
+				for (int z=0;z<10;z++){
+					if (allnode[2][maxind].avalue<allnode[2][z].avalue){
+						maxind=z;
+					}
+				}
+				int choice=0;
+				for (int a=0;a<10;a++){
+					if (expected[a]==1){
+						choice=a;
+						break;
+					}
+				}
+				System.out.println(choice+" BAH "+maxind);
+				/*
 				int cor=0;
 				int numiter = 100;
 				if (countclick<400){
@@ -561,7 +578,7 @@ public class net{
 				countclick++;
 					
 				
-				
+				*/
 				
 				window.repaint();
 			}

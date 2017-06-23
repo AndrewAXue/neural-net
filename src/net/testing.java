@@ -10,13 +10,13 @@ public class testing {
 	double dataset[][] = new double[60000][782];
 	double expected[][] = new double [60000][10];
 	static Random xpick = new Random();
-	static boolean autoa = false;
+	static boolean autoa = true;
 	
 	public static void main(String[] args) throws FileNotFoundException {
 		
 		
        
-		int temp[] = {784,30,10};
+		int temp[] = {784,80,10};
 		test = new net(temp);
 		test.auto = autoa;
 		test.visual = true;
