@@ -24,10 +24,10 @@ import javax.swing.JPanel;
 //Matrix matrix multiplication for batches
 //Improve UI
 public class net{
-	double learning_rate = 0.15;
+	double learning_rate = 1;
 	
 	// Control if visualization appears
-	boolean visual = true;
+	boolean visual = false;
 	
 	//Window for VISUALIZATION
 	JFrame window = new JFrame();
@@ -260,14 +260,15 @@ public class net{
 				allnode[i][k].xpos = distfromside+i*(visualdim/alllayersize.length);
 			}
 		}
-		
-		for (int i=0;i<allweight.length;i++){
-			System.out.println("Printing layer "+i);
-			for (int k=0;k<allweight[i].length;k++){
-				for (int j=0;j<allweight[i][k].length;j++){
-					System.out.print(allweight[i][k][j].weight+" ");
+		if (visual){
+			for (int i=0;i<allweight.length;i++){
+				System.out.println("Printing layer "+i);
+				for (int k=0;k<allweight[i].length;k++){
+					for (int j=0;j<allweight[i][k].length;j++){
+						System.out.print(allweight[i][k][j].weight+" ");
+					}
+					System.out.println();
 				}
-				System.out.println();
 			}
 		}
 	}
@@ -351,13 +352,17 @@ public class net{
 		return (x1+siz1>=x2&&x1<=x2+siz2&&y1+siz1>=y2&&y1<=y2+siz2);
 	}
 	
+	double func(double x){
+		return (Math.pow(x,2)-5*x+2)/10.0;
+	}
+	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	public void feed(){
 		//double rand = 0.5;
 		double rand = weightchoose.nextDouble();
 		//equation is 3x^2-5x+6
-		double lst[] = {rand};
-		double exp[] = {rand};
+		double lst[] = {rand,rand,rand};
+		double exp[] = {0.5,0.5};
 		feedforward(lst,exp);
 	}
 	
@@ -365,7 +370,8 @@ public class net{
 	private void cleardev(){
 		for (int i=0;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
-				//error[i][k] = 0;
+				// error matrix reset is redundant 
+				error[i][k] = 0;
 				allnode[i][k].biasdev = 0;
 				if (i!=numlayer-1){
 					for (int a=0;a<alllayersize[i+1];a++){
@@ -457,10 +463,13 @@ public class net{
 				}
 			}
 		}
+		/*
 		System.out.print("Expected: "+expected[0]);
 		System.out.printf("Act: %f",getoutput()[0]);
 		System.out.println();
 		System.out.println("Cost: "+Math.pow((expected[0]-getoutput()[0]),2)/2);
+		*/
+		
 	}
 	
 	//Returns the output layer of the net. Should be called after a feedforward is called.

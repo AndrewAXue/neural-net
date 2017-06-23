@@ -1,6 +1,9 @@
 package net;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Random;
+import java.util.Scanner;
 
 public class testing {
 	static net test;
@@ -9,20 +12,62 @@ public class testing {
 	static Random xpick = new Random();
 	static boolean autoa = true;
 	
-	public static void main(String[] args) {
-		//y = 3x+5;
-		int temp[] = {1,50,1};
+	public static void main(String[] args) throws FileNotFoundException {
+		
+		Scanner scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
+        scanner.useDelimiter(",");
+        scanner.nextLine();
+       
+		int temp[] = {784,30,10};
+		test = new net(temp);
+		test.auto = autoa;
+		int numiter = 1000;
+		if (test.auto){
+			for (int i=0;i<42;i++){
+				int please=0;
+				for (int k=0;k<numiter;k++){
+					String[] lst = scanner.nextLine().split(",");
+					int correct = Integer.parseInt(lst[0]);
+					double ans[] = {0,0,0,0,0,0,0,0,0,0};
+					ans[correct] = 1;
+		        	double doublst[] = new double[784];
+		        	ans[0] = Double.parseDouble(lst[0]);
+		        	for (int a=0;a<784;a++){
+		        		doublst[a] = Double.parseDouble(lst[a+1]);
+		        	}
+					test.feedforward(doublst,ans);
+					test.backpropagate();
+					double out[] = test.getoutput();
+					int maxind = 0;
+					for (int z=0;z<10;z++){
+						if (out[maxind]<out[z]){
+							maxind=i;
+						}
+					}
+					if (maxind==correct){
+						please++;
+					}
+				}
+				System.out.println(i+" "+please);
+				test.gradient_descent(numiter);
+			}
+		}
+		
+		 
+		/*
+		int temp[] = {784,30,10};
 		test = new net(temp);
 		test.auto = autoa;
 		if (test.auto){
-		for (int i=0;i<1000;i++){
-			for (int k=0;k<10;k++){
+			for (int i=0;i<10000;i++){
+				for (int k=0;k<50;k++){
 					test.feed();
 					test.backpropagate();
 				}
-				test.gradient_descent(1);
+				test.gradient_descent(50);
 			}
 		}
+		*/
 		
 		
 		
