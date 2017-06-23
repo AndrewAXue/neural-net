@@ -27,13 +27,14 @@ import javax.swing.JPanel;
 //Improve UI
 //Handle layers with too many nodes
 public class net{
-	double learning_rate = 5;
+	int countclick = 0;
+	double learning_rate = 4;
 	
 	//Scanner for CSV file
 	Scanner scanner;
 	
 	// Control if VISUALIZATION appears
-	boolean visual = false;
+	boolean visual = true;
 	
 	//Window for VISUALIZATION
 	JFrame window = new JFrame();
@@ -458,6 +459,7 @@ public class net{
     		doublst[a] = Double.parseDouble(lst[a+1])/255;
     	}
 		feedforward(doublst,ans);
+		
 	}
 	
 	// Clears all the partial derivatives. Should be called after gradient descent
@@ -511,12 +513,56 @@ public class net{
 				window.repaint();
 			}
 			if (e.getY()>850){
-				for (int i=0;i<100;i++){
+				int cor=0;
+				int numiter = 100;
+				if (countclick<400){
+					for (int i=0;i<numiter;i++){
+						feed();
+						backpropagate();
+						int maxind=0;
+						for (int z=0;z<10;z++){
+							if (allnode[2][maxind].avalue<allnode[2][z].avalue){
+								maxind=z;
+							}
+						}
+						int choice=0;
+						for (int a=0;a<10;a++){
+							if (expected[a]==1){
+								choice=a;
+								break;
+							}
+						}
+						if (choice==maxind){
+							cor++;
+						}
+					}
+				gradient_descent(numiter);
+				}
+				else{
 					feed();
 					backpropagate();
+					int maxind=0;
+					for (int z=0;z<10;z++){
+						if (allnode[2][maxind].avalue<allnode[2][z].avalue){
+							maxind=z;
+						}
+					}
+					int choice=0;
+					for (int a=0;a<10;a++){
+						if (expected[a]==1){
+							choice=a;
+							break;
+						}
+					}
+					System.out.println(choice+" BAH "+maxind);
+					gradient_descent(numiter);
 				}
+				System.out.println(countclick+" Correct: "+cor);
+				countclick++;
+					
 				
-				gradient_descent(100);
+				
+				
 				window.repaint();
 			}
 			boolean done = false;
@@ -560,25 +606,6 @@ public class net{
 				}
 			}
 		}
-		int maxind=0;
-		for (int z=0;z<10;z++){
-			if (allnode[2][maxind].avalue<allnode[2][z].avalue){
-				maxind=z;
-			}
-		}
-		int correct=0;
-		for (int i=0;i<10;i++){
-			if (expected[i]==1){
-				correct=i;
-				break;
-			}
-		}
-		for (int i=0;i<10;i++){
-			//System.out.print(expected[i]+" ");
-		}
-		//System.out.println();
-		//System.out.println("Expected: "+correct+" Act: "+maxind);
-		//System.out.println();
 		/*
 		System.out.print("Expected: "+expected[0]);
 		System.out.printf("Act: %f",getoutput()[0]);

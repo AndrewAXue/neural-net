@@ -10,7 +10,7 @@ public class testing {
 	double dataset[][] = new double[60000][782];
 	double expected[][] = new double [60000][10];
 	static Random xpick = new Random();
-	static boolean autoa = true;
+	static boolean autoa = false;
 	
 	public static void main(String[] args) throws FileNotFoundException {
 		
@@ -19,14 +19,14 @@ public class testing {
 		int temp[] = {784,30,10};
 		test = new net(temp);
 		test.auto = autoa;
-		test.visual = false;
+		test.visual = true;
 		test.scanner = new Scanner(new File("/Users/andrew.xue/Downloads/train.csv"));
 		test.scanner.useDelimiter(",");
 		test.scanner.nextLine();
 		
-		int numiter = 1000;
+		int numiter = 100;
 		if (test.auto){
-			for (int i=0;i<42;i++){
+			for (int i=0;i<419;i++){
 				int please=0;
 				for (int k=0;k<numiter;k++){
 					String[] lst = test.scanner.nextLine().split(",");
@@ -51,7 +51,7 @@ public class testing {
 						please++;
 					}
 				}
-				System.out.println("PLEASE "+i+" "+please);
+				System.out.println("PLEASE "+i+" "+please+" out of "+numiter);
 				test.gradient_descent(numiter);
 			}
 		}
