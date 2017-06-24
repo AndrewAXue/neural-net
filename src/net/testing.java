@@ -21,6 +21,9 @@ public class testing {
 		test.scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
 		test.scanner.useDelimiter(",");
 		test.scanner.nextLine();
+		if (visuala){
+			test.create_window();
+		}
 		
 		int numiter = 100;
 		if (test.auto){
