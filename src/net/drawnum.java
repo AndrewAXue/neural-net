@@ -33,7 +33,7 @@ public class drawnum {
 		new drawnum().go();
 	}
 	
-	private void go(){
+	void go(){
 		// Opens a default window and adds graphics
 		window.setSize(28, 80);
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
