@@ -11,22 +11,28 @@ import java.awt.Insets;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Random;
+import java.util.Scanner;
+
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-
-
 
 //TODO
 //Softmax
 //Cross entropy cost function
 //Matrix matrix multiplication for batches
 //Improve UI
+//Handle layers with too many nodes
 public class net{
-	double learning_rate = 1;
+	int countclick = 0;
+	int maxnodes = 6;
+	double learning_rate = 3;
 	
-	// Control if visualization appears
+	//Scanner for CSV file
+	Scanner scanner;
+	
+	// Control if VISUALIZATION appears
 	boolean visual = false;
 	
 	//Window for VISUALIZATION
@@ -88,7 +94,8 @@ public class net{
 		double avalue = 0;
 		double biasdev = 0;
 		
-		boolean drawweight=true;
+		boolean drawweight=false;
+		boolean drawnode=false;
 		
 		int xpos,ypos;
 		Color color = new Color((float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5));
@@ -146,7 +153,7 @@ public class net{
 	 */
 	
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
-	// starts visualization.
+	// starts VISUALIZATION.
 	net(int arr[]){
 		alllayersize = arr;
 		numlayer = arr.length;
@@ -160,12 +167,46 @@ public class net{
 				throw new RuntimeException("No layers should have 0 nodes.");
 			}
 		}
+		//Initializing array of matrices that stores all the weights
 		allweight = new weightclass[alllayersize.length-1][][];
 		for (int i=1;i<alllayersize.length;i++){
 			allweight[i-1] = new weightclass[alllayersize[i]][alllayersize[i-1]];
 			for (int k=0;k<alllayersize[i];k++){
 				for (int l=0;l<alllayersize[i-1];l++){
 					allweight[i-1][k][l] = new weightclass();
+				}
+			}
+		}
+		//Initializing matrix that stores properties of nodes
+		allnode = new nodeclass[numlayer][];
+		for (int i=0;i<numlayer;i++){
+			allnode[i] = new nodeclass[alllayersize[i]];
+			if (alllayersize[i]<=maxnodes){
+				for (int k=0;k<alllayersize[i];k++){
+					nodeclass active = allnode[i][k] = new nodeclass();
+					active.drawnode=true;
+					if (i==0){
+						active.bias=0;
+					}
+					active.ypos = distfromtop+k*(visualdim/alllayersize[i]);
+					active.xpos = distfromside+i*(visualdim/alllayersize.length);
+				}	
+			}
+			else{
+				int interval = alllayersize[i]/maxnodes;
+				System.out.println("interval: "+interval);
+				for (int k=0;k<alllayersize[i];k++){
+					nodeclass active = allnode[i][k] = new nodeclass();
+					active.drawnode=false;
+					if (i==0){
+						active.bias=0;
+					}
+				}
+				for (int k=0;k<maxnodes;k++){
+					System.out.println(i+" "+k*interval);
+					allnode[i][k*interval].drawnode=true;
+					allnode[i][k*interval].ypos = distfromtop+k*(visualdim/maxnodes);
+					allnode[i][k*interval].xpos = distfromside+i*(visualdim/alllayersize.length);
 				}
 			}
 		}
@@ -183,7 +224,7 @@ public class net{
 			
 			JPanel visuals = new JPanel();
 			visuals.setBackground(Color.BLACK);
-			visuals.add(new visualization());
+			visuals.add(new VISUALIZATION());
 			visuals.addMouseListener(new mouseevent());
 			
 			cons.fill = GridBagConstraints.NONE;
@@ -248,35 +289,24 @@ public class net{
 			window.setVisible(true);
 		} 
 			
-		allnode = new nodeclass[numlayer][];
-		for (int i=0;i<numlayer;i++){
-			allnode[i] = new nodeclass[alllayersize[i]];
-			for (int k=0;k<alllayersize[i];k++){
-				allnode[i][k] = new nodeclass();
-				if (i==0){
-					allnode[i][k].bias=0;
+		//Printing weight matrices
+		/*
+		for (int i=0;i<allweight.length;i++){
+			System.out.println("Printing layer "+i);
+			for (int k=0;k<allweight[i].length;k++){
+				for (int j=0;j<allweight[i][k].length;j++){
+					System.out.print(allweight[i][k][j].weight+" ");
 				}
-				allnode[i][k].ypos = distfromtop+k*(visualdim/alllayersize[i]);
-				allnode[i][k].xpos = distfromside+i*(visualdim/alllayersize.length);
+				System.out.println();
 			}
 		}
-		if (visual){
-			for (int i=0;i<allweight.length;i++){
-				System.out.println("Printing layer "+i);
-				for (int k=0;k<allweight[i].length;k++){
-					for (int j=0;j<allweight[i][k].length;j++){
-						System.out.print(allweight[i][k][j].weight+" ");
-					}
-					System.out.println();
-				}
-			}
-		}
+		*/
 	}
 	
 	// Graphics aspect of the framework
-	private class visualization extends JComponent {
+	private class VISUALIZATION extends JComponent {
 		
-		visualization() {
+		VISUALIZATION() {
             setPreferredSize(new Dimension(visualdim, visualdim));
         }
 		
@@ -287,46 +317,55 @@ public class net{
 			grap.setColor(Color.WHITE);
 			grap.setFont(new Font("Arial Black", Font.BOLD, 15));
 			
-			//Painting various elements of the VISUALIZATION
+			//Painting the weights and lines between nodes
 			for (int i=0;i<allweight.length;i++){
 				for (int k=0;k<allweight[i][0].length;k++){
 					nodeclass active = allnode[i][k];
-					for (int a=0;a<allweight[i].length;a++){
-						grap.setColor(active.color);
-						int x1 = active.xpos+sizenode/2;
-						int y1 = active.ypos+sizenode/2;
-						int x2 = allnode[i+1][a].xpos+sizenode/2;
-						int y2 = allnode[i+1][a].ypos+sizenode/2;
-						//Creating lines between nodes where there are weights
-						grap.drawLine(x1,y1,x2,y2);
-						if (allnode[i][k].drawweight){								
-							double slope = (double)(y1-y2)/(double)(x1-x2);
-							double yinter = (y1-slope*x1);
-							double newx = x1+(x2-x1)/2-55;
-							// Writing properties of the weights approximately halfway between the layers
-							grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
-							grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
-						}	
+					if (active.drawnode){
+						for (int a=0;a<allweight[i].length;a++){
+							if (allnode[i+1][a].drawnode){
+								grap.setColor(active.color);
+								int x1 = active.xpos+sizenode/2;
+								int y1 = active.ypos+sizenode/2;
+								int x2 = allnode[i+1][a].xpos+sizenode/2;
+								int y2 = allnode[i+1][a].ypos+sizenode/2;
+								//Creating lines between nodes where there are weights
+								if (x1>30&&x2>30){
+									grap.drawLine(x1,y1,x2,y2);
+									if (allnode[i][k].drawweight){								
+										double slope = (double)(y1-y2)/(double)(x1-x2);
+										double yinter = (y1-slope*x1);
+										double newx = x1+(x2-x1)/2-55;
+										// Writing properties of the weights approximately halfway between the layers
+										grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
+										grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
+									}	
+								}
+							}
+						}
 					}
+					
 				}
+				
 			}
-			
+			//Drawing nodes
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
 					nodeclass active = allnode[i][k];
+					if (active.drawnode){
+						grap.setColor(active.color);
+						//Drawing Bias and Bias partial derivitive above node
+						grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos-20);
+						grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, active.ypos);	
+						//Writing down characteristics of the node including the value pre and post sigmoid function and error
+						if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
+						else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);	
+						grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 40+active.ypos+sizenode);	
+						//Drawing the actual node
+						grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
+					}
 					
-					grap.setColor(Color.WHITE);
-					//Drawing Stats: Bias + Value and the actual node
-					grap.drawString("Bias: "+Math.round(1000000.0*allnode[i][k].getbias())/1000000.0, allnode[i][k].xpos, allnode[i][k].ypos);
-					grap.setColor(active.color);
-					//Drawing the actual node
-					grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
-					grap.setColor(Color.WHITE);
-					//Writing down characteristics of the node including the value pre and post sigmoid function, the partial derivative of the bias and error
-					if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
-					else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);
-					grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, 40+active.ypos+sizenode);	
-					grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 60+active.ypos+sizenode);	
+					
 				}
 			}
 		}
@@ -359,11 +398,23 @@ public class net{
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	public void feed(){
 		//double rand = 0.5;
+		/*
 		double rand = weightchoose.nextDouble();
 		//equation is 3x^2-5x+6
 		double lst[] = {rand,rand,rand};
 		double exp[] = {0.5,0.5};
 		feedforward(lst,exp);
+		*/
+		String[] lst = scanner.nextLine().split(",");
+		int correct = Integer.parseInt(lst[0]);
+		double ans[] = {0,0,0,0,0,0,0,0,0,0};
+		ans[correct] = 1;
+    	double doublst[] = new double[784];
+    	for (int a=0;a<784;a++){
+    		doublst[a] = Double.parseDouble(lst[a+1])/255;
+    	}
+		feedforward(doublst,ans);
+		
 	}
 	
 	// Clears all the partial derivatives. Should be called after gradient descent
@@ -389,7 +440,7 @@ public class net{
 				System.out.println("Automatic testing is running");
 				
 			}
-			System.out.println(e.getPoint());
+			//System.out.println(e.getPoint());
 			if (e.isControlDown()){
 				cleardev();
 				window.repaint();
@@ -419,14 +470,78 @@ public class net{
 			if (e.getY()>850){
 				feed();
 				backpropagate();
-				gradient_descent(1);
+				int maxind=0;
+				for (int z=0;z<10;z++){
+					if (allnode[2][maxind].avalue<allnode[2][z].avalue){
+						maxind=z;
+					}
+				}
+				int choice=0;
+				for (int a=0;a<10;a++){
+					if (expected[a]==1){
+						choice=a;
+						break;
+					}
+				}
+				System.out.println(choice+" BAH "+maxind);
+				/*
+				int cor=0;
+				int numiter = 100;
+				if (countclick<400){
+					for (int i=0;i<numiter;i++){
+						feed();
+						backpropagate();
+						int maxind=0;
+						for (int z=0;z<10;z++){
+							if (allnode[2][maxind].avalue<allnode[2][z].avalue){
+								maxind=z;
+							}
+						}
+						int choice=0;
+						for (int a=0;a<10;a++){
+							if (expected[a]==1){
+								choice=a;
+								break;
+							}
+						}
+						if (choice==maxind){
+							cor++;
+						}
+					}
+				gradient_descent(numiter);
+				}
+				else{
+					feed();
+					backpropagate();
+					int maxind=0;
+					for (int z=0;z<10;z++){
+						if (allnode[2][maxind].avalue<allnode[2][z].avalue){
+							maxind=z;
+						}
+					}
+					int choice=0;
+					for (int a=0;a<10;a++){
+						if (expected[a]==1){
+							choice=a;
+							break;
+						}
+					}
+					System.out.println(choice+" BAH "+maxind);
+					gradient_descent(numiter);
+				}
+				System.out.println(countclick+" Correct: "+cor);
+				countclick++;
+					
+				
+				*/
+				
 				window.repaint();
 			}
 			boolean done = false;
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
 					nodeclass active = allnode[i][k];
-					if (collision(active.getx(),active.gety(),e.getX(),e.getY(),sizenode,0)){
+					if (active.drawnode&&collision(active.getx(),active.gety(),e.getX(),e.getY(),sizenode,0)){
 						active.drawweight = !active.drawweight;
 						window.repaint();
 						break;

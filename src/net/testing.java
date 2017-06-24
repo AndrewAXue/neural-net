@@ -11,44 +11,45 @@ public class testing {
 	double expected[][] = new double [60000][10];
 	static Random xpick = new Random();
 	static boolean autoa = true;
+	static boolean visuala = false;
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		
-		Scanner scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
-        scanner.useDelimiter(",");
-        scanner.nextLine();
-       
-		int temp[] = {784,30,10};
+		int temp[] = {784,80,10};
 		test = new net(temp);
 		test.auto = autoa;
-		int numiter = 1000;
+		test.visual = visuala;
+		test.scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
+		test.scanner.useDelimiter(",");
+		test.scanner.nextLine();
+		
+		int numiter = 100;
 		if (test.auto){
-			for (int i=0;i<42;i++){
+			for (int i=0;i<419;i++){
 				int please=0;
 				for (int k=0;k<numiter;k++){
-					String[] lst = scanner.nextLine().split(",");
+					String[] lst = test.scanner.nextLine().split(",");
 					int correct = Integer.parseInt(lst[0]);
+					//System.out.println(correct);
 					double ans[] = {0,0,0,0,0,0,0,0,0,0};
 					ans[correct] = 1;
-		        	double doublst[] = new double[784];
-		        	ans[0] = Double.parseDouble(lst[0]);
-		        	for (int a=0;a<784;a++){
-		        		doublst[a] = Double.parseDouble(lst[a+1]);
-		        	}
+			    	double doublst[] = new double[784];
+			    	for (int a=0;a<784;a++){
+			    		doublst[a] = Double.parseDouble(lst[a+1])/255;
+			    	}
 					test.feedforward(doublst,ans);
 					test.backpropagate();
 					double out[] = test.getoutput();
 					int maxind = 0;
 					for (int z=0;z<10;z++){
 						if (out[maxind]<out[z]){
-							maxind=i;
+							maxind=z;
 						}
 					}
 					if (maxind==correct){
 						please++;
 					}
 				}
-				System.out.println(i+" "+please);
+				System.out.println("PLEASE "+i+" "+please+" out of "+numiter);
 				test.gradient_descent(numiter);
 			}
 		}
@@ -84,27 +85,5 @@ public class testing {
 		*/
 		
 		//test.netprint();
-	}
-	
-	private double cost(int ind, int numinp){
-		double answer = 0;
-		for (int i=0;i<numinp;i++){
-			test.feedforward(dataset[i]);
-			double output[] = test.getoutput();
-			for (int k=0;k<10;k++){
-				output[k]-=expected[i][k];
-			}
-			answer+=length(output);
-		}
-		answer*=(1/(2*numinp));
-		return answer;
-	}
-	
-	private double length(double lst[]){
-		double answer=0;
-		for (int i=0;i<lst.length;i++){
-			answer+=Math.pow(lst[i],2);
-		}
-		return answer;
 	}
 }
