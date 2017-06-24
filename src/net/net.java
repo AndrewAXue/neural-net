@@ -12,28 +12,45 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Random;
 import java.util.Scanner;
-
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+
+// Made by Andrew Xue
+// a3xue@edu.uwaterloo.ca
+// Neural net framework! Uses stochastic gradient descent + backpropagation as its learning algorithm. I made
+// this because tensorflow felt like just throwing black box functions at a problem and hoping it worked. I
+// figured if I made everything from scratch I would understand it better.
+
 //TODO
 //Softmax
 //Cross entropy cost function
 //Matrix matrix multiplication for batches
-//Improve UI
-//Handle layers with too many nodes
+//Improve UI more buttons
+//Other improvements for escaping local minima
+//Outputting network weights + node properties to a seperate file for easy use in other programs
+//New constructor that builds neural net off of file (presumably trained one)
+
+//Known bugs:
+//Slow learning rate. Matrix matrix multiplication should alleviate this
+//Relatively low accuracy 85-90 after trained. Cross entropy should help, maybe playing with learning rates more
+
 public class net{
 	int countclick = 0;
 	int maxnodes = 6;
 	double learning_rate = 3;
+	boolean drawdev = false;
 	
 	//Scanner for CSV file
 	Scanner scanner;
 	
 	// Control if VISUALIZATION appears
-	boolean visual = false;
+	boolean visual = true;
 	
 	//Window for VISUALIZATION
 	JFrame window = new JFrame();
@@ -41,21 +58,21 @@ public class net{
 	int numlayer;
 	int alllayersize[];
 	
-	//Properties of each node
-	nodeclass allnode[][];
 	//Randoms for choosing initial values for nodes
 	Random weightchoose = new Random();
 	Random biaschoose = new Random();
 	Random colorpick = new Random();
 	
+	//Properties of each node
+	nodeclass allnode[][];
 	//Weights of all the weights
 	weightclass  allweight[][][];
 	
 	//Error of each node (backpropagation)
 	double error[][];
-	//Expected vector
+	//Expected output vector
 	double expected[];
-	//Determines if automatic testing is running
+	//Whether to use automatic testing or not
 	boolean auto = false;
 	//Size of VISUALIZATION
 	int visualdim = 900;
@@ -81,7 +98,6 @@ public class net{
 	// node which input value is taken from the first layers[indice] node.
 	private class weightclass{
 		double weight=weightchoose.nextDouble()*2-1;
-		//double weight = weightchoose.nextInt(10)-5;
 		double weightdev=0;
 	}
 		
@@ -90,16 +106,21 @@ public class net{
 		// stores where the node will be drawn on the window. The color of the node is a randomized "bright" color.
 	protected class nodeclass{
 		double bias = 0;
-		double zvalue = 0;
-		double avalue = 0;
 		double biasdev = 0;
+		//Weighted sum of all the inputed + bias of the node
+		double zvalue = 0;
+		//avalue is the output of the node and by definition avalue = sigmoid(zvalue)
+		double avalue = 0;
 		
-		boolean drawweight=false;
+		//Whether weight value and weight dev should be drawn
+		boolean drawweight=true;
+		//Whether node should be drawn
 		boolean drawnode=false;
-		
+		//Stores x and y coordinates of visualization for the node
 		int xpos,ypos;
+		//Random "bright" color choice
 		Color color = new Color((float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5));
-
+		//Initializes with random weight from -1 to 1
 		nodeclass(){
 			bias=biaschoose.nextDouble()*2-1;
 		}
@@ -108,10 +129,6 @@ public class net{
 			System.out.println("Printing Node");
 			System.out.println("value: "+zvalue+" Post Sig: "+avalue+" Bias: "+bias);
 			System.out.println();
-		}
-		
-		void setvalue(double newvalue){
-			zvalue = newvalue;
 		}
 		
 		void setbias(double newbias){
@@ -152,6 +169,62 @@ public class net{
 	LAST_LINE_START		PAGE_END		LAST_LINE_END
 	 */
 	
+	// Initializes net with a text file (outputted from export_net function). This should only be used for 
+	// already trained and exported neural nets. Error and partial derivatives are not initialized/inaccurate
+	// so backpropagation and gradient_descent should NOT be called. Only feedforward should be used.
+	net(String file) throws FileNotFoundException{
+		// Drawing the partial derivatives is automatically suppressed to increase efficiency
+		drawdev = false;
+		Scanner scanner = new Scanner(new File(file));
+		// First line contains the number of layers
+		String tempnumlayers = scanner.nextLine();
+		numlayer = Character.getNumericValue(tempnumlayers.charAt(0));
+		// Next line contains the size of each of the layers
+		String[] layersizes = scanner.nextLine().split(" ");
+		
+		// Setting up array with all the sizes of the layers
+		alllayersize = new int[numlayer];
+		for (int i=0;i<numlayer;i++){
+			alllayersize[i] = Integer.parseInt(layersizes[i]);
+		}
+		allnode = new nodeclass[numlayer][];
+		System.out.println("Taking "+scanner.nextLine());
+		scanner.nextLine();
+		// Taking in node properties from the file
+		for (int i=0;i<numlayer;i++){
+			allnode[i] = new nodeclass[alllayersize[i]];
+			for (int k=0;k<alllayersize[i];k++){
+				String nodeprop[] = scanner.nextLine().split(" ");
+				nodeclass active;
+				allnode[i][k] = active = new nodeclass();
+				active.bias = Double.parseDouble(nodeprop[0]);
+				active.xpos = Integer.parseInt(nodeprop[1]);
+				active.ypos = Integer.parseInt(nodeprop[2]);
+				if (Integer.parseInt(nodeprop[3])==1){
+					active.drawnode = true;
+				}
+				else{
+					active.drawnode = false;
+				}
+			}
+		}
+		System.out.println("Taking "+scanner.nextLine());
+		//Initializing array of matrices that stores all the weights
+		allweight = new weightclass[alllayersize.length-1][][];
+		for (int i=1;i<alllayersize.length;i++){
+			allweight[i-1] = new weightclass[alllayersize[i]][alllayersize[i-1]];
+			for (int k=0;k<alllayersize[i];k++){
+				String tempweight[] = scanner.nextLine().split(" ");
+				for (int l=0;l<alllayersize[i-1];l++){
+					allweight[i-1][k][l] = new weightclass();
+					allweight[i-1][k][l].weight = Double.parseDouble(tempweight[l]);
+				}
+			}
+		}
+		scanner.close();
+		
+	}
+	
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	net(int arr[]){
@@ -161,11 +234,6 @@ public class net{
 		error = new double[numlayer][];
 		for (int i=0;i<numlayer;i++){
 			error[i] = new double[alllayersize[i]];
-		}
-		for (int i=0;i<arr.length;i++){
-			if (arr[i]==0){
-				throw new RuntimeException("No layers should have 0 nodes.");
-			}
 		}
 		//Initializing array of matrices that stores all the weights
 		allweight = new weightclass[alllayersize.length-1][][];
@@ -180,7 +248,19 @@ public class net{
 		//Initializing matrix that stores properties of nodes
 		allnode = new nodeclass[numlayer][];
 		for (int i=0;i<numlayer;i++){
+			if (alllayersize[i]==0){
+				throw new RuntimeException("No layers should have 0 nodes.");
+			}
 			allnode[i] = new nodeclass[alllayersize[i]];
+			for (int k=0;k<alllayersize[i];k++){
+				nodeclass active = allnode[i][k] = new nodeclass();
+				active.drawnode=true;
+				if (i==0){
+					active.bias=0;
+				}
+				active.ypos = distfromtop+k*(visualdim/alllayersize[i]);
+				active.xpos = distfromside+i*(visualdim/alllayersize.length);
+			}	
 			if (alllayersize[i]<=maxnodes){
 				for (int k=0;k<alllayersize[i];k++){
 					nodeclass active = allnode[i][k] = new nodeclass();
@@ -193,6 +273,8 @@ public class net{
 				}	
 			}
 			else{
+				//If there are too many nodes (numnodes>maxnodes) take every nth node so that only maxnodes are 
+				//displayed
 				int interval = alllayersize[i]/maxnodes;
 				System.out.println("interval: "+interval);
 				for (int k=0;k<alllayersize[i];k++){
@@ -203,91 +285,13 @@ public class net{
 					}
 				}
 				for (int k=0;k<maxnodes;k++){
-					System.out.println(i+" "+k*interval);
 					allnode[i][k*interval].drawnode=true;
 					allnode[i][k*interval].ypos = distfromtop+k*(visualdim/maxnodes);
 					allnode[i][k*interval].xpos = distfromside+i*(visualdim/alllayersize.length);
 				}
 			}
 		}
-		if (visual){
-			window.setSize(1000, 1000);
-			window.setTitle("VISUALIZATION");
-			window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-			window.setResizable(false);
-			
-			window.setIconImage(new ImageIcon("neural.jpg").getImage());
-			
-			JPanel everything = new JPanel(new GridBagLayout());
-			GridBagConstraints cons = new GridBagConstraints();
-			
-			
-			JPanel visuals = new JPanel();
-			visuals.setBackground(Color.BLACK);
-			visuals.add(new VISUALIZATION());
-			visuals.addMouseListener(new mouseevent());
-			
-			cons.fill = GridBagConstraints.NONE;
-			cons.weightx = 0;
-			cons.weighty = 0;
-			cons.ipadx = visualdim;
-			cons.ipady = visualdim;
-			cons.gridx = 0;
-			cons.gridy = 1;
-			cons.anchor = GridBagConstraints.LINE_START;
-			cons.insets = new Insets(0,0,0,0);		
-			everything.add(visuals,cons);
-			
-			JPanel stats = new JPanel();
-			stats.setBackground(Color.PINK);
-			
-			cons.fill = GridBagConstraints.BOTH;
-			cons.weightx = 1;
-			cons.weighty = 1;
-			cons.ipadx = 0;
-			cons.ipady = 30;
-			cons.gridx = 0;
-			cons.gridy = 0;
-			cons.anchor = GridBagConstraints.PAGE_START;
-			cons.insets = new Insets(0,0,0,0);
-			
-			everything.add(stats,cons);
-			
-			
-			JPanel downfill = new JPanel();
-			downfill.setBackground(Color.BLUE);
-			
-			
-			cons.fill = GridBagConstraints.BOTH;
-			cons.weightx = 1;
-			cons.weighty = 1;
-			cons.ipadx = 0;
-			cons.ipady = 30;
-			cons.gridx = 0;
-			cons.gridy = 2;
-			cons.anchor = GridBagConstraints.PAGE_START;
-			cons.insets = new Insets(0,0,0,0);
-			everything.add(downfill,cons);
-			
-			
-			JPanel rightfill = new JPanel();
-			rightfill.setBackground(Color.ORANGE);
 		
-			
-			cons.fill = GridBagConstraints.BOTH;
-			cons.weightx = 1;
-			cons.weighty = 1;
-			cons.ipadx = 1000-visualdim;
-			cons.ipady = 0;
-			cons.gridx = 1;
-			cons.gridy = 1;
-			cons.anchor = GridBagConstraints.PAGE_START;
-			cons.insets = new Insets(0,0,0,0);
-			everything.add(rightfill,cons);
-			
-			window.add(everything);
-			window.setVisible(true);
-		} 
 			
 		//Printing weight matrices
 		/*
@@ -303,6 +307,88 @@ public class net{
 		*/
 	}
 	
+	protected void create_window(){
+		//Set characteristics of window
+		window.setSize(1000, 1000);
+		window.setTitle("VISUALIZATION");
+		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		window.setResizable(false);
+		window.setIconImage(new ImageIcon("neural.jpg").getImage());
+		
+		//JPanel for all the individual pieces
+		JPanel everything = new JPanel(new GridBagLayout());
+		GridBagConstraints cons = new GridBagConstraints();
+		
+		//JPanel for the VISUALIZATION
+		JPanel visuals = new JPanel();
+		visuals.setBackground(Color.BLACK);
+		visuals.add(new VISUALIZATION());
+		visuals.addMouseListener(new mouseevent());
+		
+		cons.fill = GridBagConstraints.NONE;
+		cons.weightx = 0;
+		cons.weighty = 0;
+		cons.ipadx = visualdim;
+		cons.ipady = visualdim;
+		cons.gridx = 0;
+		cons.gridy = 1;
+		cons.anchor = GridBagConstraints.LINE_START;
+		cons.insets = new Insets(0,0,0,0);		
+		everything.add(visuals,cons);
+		
+		//Currently just filling portions of the window to be used in the future for stats and buttons
+		
+		JPanel stats = new JPanel();
+		stats.setBackground(Color.PINK);
+		
+		cons.fill = GridBagConstraints.BOTH;
+		cons.weightx = 1;
+		cons.weighty = 1;
+		cons.ipadx = 0;
+		cons.ipady = 30;
+		cons.gridx = 0;
+		cons.gridy = 0;
+		cons.anchor = GridBagConstraints.PAGE_START;
+		cons.insets = new Insets(0,0,0,0);
+		
+		everything.add(stats,cons);
+		
+		
+		JPanel downfill = new JPanel();
+		downfill.setBackground(Color.BLUE);
+		
+		
+		cons.fill = GridBagConstraints.BOTH;
+		cons.weightx = 1;
+		cons.weighty = 1;
+		cons.ipadx = 0;
+		cons.ipady = 30;
+		cons.gridx = 0;
+		cons.gridy = 2;
+		cons.anchor = GridBagConstraints.PAGE_START;
+		cons.insets = new Insets(0,0,0,0);
+		everything.add(downfill,cons);
+		
+		
+		JPanel rightfill = new JPanel();
+		rightfill.setBackground(Color.ORANGE);
+	
+		
+		cons.fill = GridBagConstraints.BOTH;
+		cons.weightx = 1;
+		cons.weighty = 1;
+		cons.ipadx = 1000-visualdim;
+		cons.ipady = 0;
+		cons.gridx = 1;
+		cons.gridy = 1;
+		cons.anchor = GridBagConstraints.PAGE_START;
+		cons.insets = new Insets(0,0,0,0);
+		everything.add(rightfill,cons);
+		
+		window.add(everything);
+		window.setVisible(true);
+	}
+	
 	// Graphics aspect of the framework
 	private class VISUALIZATION extends JComponent {
 		
@@ -312,8 +398,7 @@ public class net{
 		
 		public void paintComponent(Graphics g){
 			super.paintComponents(g);
-			Graphics2D grap = (Graphics2D) g; 
-			grap.setBackground(Color.BLACK);			
+			Graphics2D grap = (Graphics2D) g; 	
 			grap.setColor(Color.WHITE);
 			grap.setFont(new Font("Arial Black", Font.BOLD, 15));
 			
@@ -338,7 +423,7 @@ public class net{
 										double newx = x1+(x2-x1)/2-55;
 										// Writing properties of the weights approximately halfway between the layers
 										grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
-										grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
+										if (drawdev)grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
 									}	
 								}
 							}
@@ -355,12 +440,20 @@ public class net{
 					if (active.drawnode){
 						grap.setColor(active.color);
 						//Drawing Bias and Bias partial derivitive above node
-						grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos-20);
-						grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, active.ypos);	
-						//Writing down characteristics of the node including the value pre and post sigmoid function and error
-						if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
-						else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);	
-						grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 40+active.ypos+sizenode);	
+						if (drawdev){
+							grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos-20);
+							grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, active.ypos);	
+							//Writing down characteristics of the node including the value pre and post sigmoid function and error
+							if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
+							else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);	
+							grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 40+active.ypos+sizenode);
+						}
+						else{
+							grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos);
+							if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 15+active.ypos+sizenode);
+							else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 15+active.ypos+sizenode);	
+						}
+							
 						//Drawing the actual node
 						grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
 					}
@@ -386,13 +479,48 @@ public class net{
 		}
 	}
 	
+	// Writes down all the properties of the net (weights, biases) to a txt file
+	protected void export_net(String file){
+		try{
+			FileWriter write = new FileWriter(file);
+			write.append(numlayer+" layers\n");
+			for (int i=0;i<numlayer;i++){
+				write.append(alllayersize[i]+" ");
+			}
+			write.append('\n');
+			write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<alllayersize[i];k++){
+					nodeclass active = allnode[i][k];
+					write.append(Double.toString(active.bias)+" "+active.xpos+" "+active.ypos+" " );
+					if (allnode[i][k].drawnode){
+						write.append("1\n");
+					}
+					else{
+						write.append("0\n");
+					}
+				}
+			}
+			write.append("Weight properties\n");
+			for (int i=0;i<allweight.length;i++){
+				for (int k=0;k<allweight[i].length;k++){
+					for (int j=0;j<allweight[i][k].length;j++){
+						write.append(allweight[i][k][j].weight+" ");
+					}
+					write.append("\n");
+				}
+			}
+			write.close();
+		}
+		catch (Exception e){
+			System.out.println("Error writing to file");
+			e.printStackTrace();
+		}
+	}
+	
 	// Outputs whether the coordinates of two (rectangular)objects collide with each other.
 	boolean collision(int x1, int y1, int x2, int y2,int siz1, int siz2){
 		return (x1+siz1>=x2&&x1<=x2+siz2&&y1+siz1>=y2&&y1<=y2+siz2);
-	}
-	
-	double func(double x){
-		return (Math.pow(x,2)-5*x+2)/10.0;
 	}
 	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
@@ -469,7 +597,6 @@ public class net{
 			}
 			if (e.getY()>850){
 				feed();
-				backpropagate();
 				int maxind=0;
 				for (int z=0;z<10;z++){
 					if (allnode[2][maxind].avalue<allnode[2][z].avalue){
@@ -606,7 +733,6 @@ public class net{
 		for (int i=0;i<alllayersize[numlayer-1];i++){
 			error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
 			allnode[numlayer-1][i].biasdev += error[numlayer-1][i];
-			//System.out.println(sigmoidprime(allnode[numlayer-1][i].zvalue));
 		}
 		//BP2
 		for (int i=numlayer-2;i>=0;i--){
@@ -615,7 +741,6 @@ public class net{
 				for (int a=0;a<alllayersize[i+1];a++){
 					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime(allnode[i][k].zvalue);
 				}
-				//System.out.println(newerror);	
 				error[i][k] = newerror;
 				//BP3
 				allnode[i][k].biasdev += error[i][k];
@@ -639,7 +764,6 @@ public class net{
 		for (int i=1;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
 				allnode[i][k].bias-=learning_rate/(double)batch_size*allnode[i][k].biasdev;
-				//allnode[i][k].biasdev = 0;
 			}
 		}
 		//Updating weights
@@ -647,7 +771,6 @@ public class net{
 			for (int k=0;k<allweight[i].length;k++){
 				for (int a=0;a<allweight[i][0].length;a++){
 					allweight[i][k][a].weight-=learning_rate/(double)batch_size*allweight[i][k][a].weightdev;
-					//allweight[i][k][a].weightdev = 0;
 				}
 			}
 		}
