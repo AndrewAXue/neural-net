@@ -11,16 +11,14 @@ public class testing {
 	double expected[][] = new double [60000][10];
 	static Random xpick = new Random();
 	static boolean autoa = true;
+	static boolean visual = true;
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		
-		
-       
 		int temp[] = {784,80,10};
 		test = new net(temp);
 		test.auto = autoa;
-		test.visual = true;
-		test.scanner = new Scanner(new File("/Users/andrew.xue/Downloads/train.csv"));
+		test.visual = visual;
+		test.scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
 		test.scanner.useDelimiter(",");
 		test.scanner.nextLine();
 		
@@ -87,27 +85,5 @@ public class testing {
 		*/
 		
 		//test.netprint();
-	}
-	
-	private double cost(int ind, int numinp){
-		double answer = 0;
-		for (int i=0;i<numinp;i++){
-			test.feedforward(dataset[i]);
-			double output[] = test.getoutput();
-			for (int k=0;k<10;k++){
-				output[k]-=expected[i][k];
-			}
-			answer+=length(output);
-		}
-		answer*=(1/(2*numinp));
-		return answer;
-	}
-	
-	private double length(double lst[]){
-		double answer=0;
-		for (int i=0;i<lst.length;i++){
-			answer+=Math.pow(lst[i],2);
-		}
-		return answer;
 	}
 }

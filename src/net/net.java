@@ -18,8 +18,6 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-
-
 //TODO
 //Softmax
 //Cross entropy cost function
@@ -28,6 +26,7 @@ import javax.swing.JPanel;
 //Handle layers with too many nodes
 public class net{
 	int countclick = 0;
+	int maxnodes = 6;
 	double learning_rate = 4;
 	
 	//Scanner for CSV file
@@ -96,8 +95,9 @@ public class net{
 		double biasdev = 0;
 		
 		boolean drawweight=false;
+		boolean drawnode=false;
 		
-		int xpos,ypos=-1;
+		int xpos,ypos;
 		Color color = new Color((float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5),(float)(colorpick.nextFloat()/ 2f + 0.5));
 
 		nodeclass(){
@@ -181,32 +181,35 @@ public class net{
 		allnode = new nodeclass[numlayer][];
 		for (int i=0;i<numlayer;i++){
 			allnode[i] = new nodeclass[alllayersize[i]];
-			if (alllayersize[i]<=10){
+			if (alllayersize[i]<=maxnodes){
 				for (int k=0;k<alllayersize[i];k++){
-					allnode[i][k] = new nodeclass();
+					nodeclass active = allnode[i][k] = new nodeclass();
+					active.drawnode=true;
 					if (i==0){
-						allnode[i][k].bias=0;
+						active.bias=0;
 					}
-					allnode[i][k].ypos = distfromtop+k*(visualdim/alllayersize[i]);
-					allnode[i][k].xpos = distfromside+i*(visualdim/alllayersize.length);
-				}
+					active.ypos = distfromtop+k*(visualdim/alllayersize[i]);
+					active.xpos = distfromside+i*(visualdim/alllayersize.length);
+				}	
 			}
 			else{
-				int interval = alllayersize[i]/10;
+				int interval = alllayersize[i]/maxnodes;
+				System.out.println("interval: "+interval);
 				for (int k=0;k<alllayersize[i];k++){
-					allnode[i][k] = new nodeclass();
+					nodeclass active = allnode[i][k] = new nodeclass();
+					active.drawnode=false;
 					if (i==0){
-						allnode[i][k].bias=0;
-					}
-					if (k%interval==0){
-						allnode[i][k].ypos = distfromtop+(k/interval)*(visualdim/10);
-						allnode[i][k].xpos = distfromside+i*(visualdim/alllayersize.length);
+						active.bias=0;
 					}
 				}
+				for (int k=0;k<maxnodes;k++){
+					System.out.println(i+" "+k*interval);
+					allnode[i][k*interval].drawnode=true;
+					allnode[i][k*interval].ypos = distfromtop+k*(visualdim/maxnodes);
+					allnode[i][k*interval].xpos = distfromside+i*(visualdim/alllayersize.length);
+				}
 			}
-			
 		}
-		
 		if (visual){
 			window.setSize(1000, 1000);
 			window.setTitle("VISUALIZATION");
@@ -316,10 +319,11 @@ public class net{
 			
 			//Painting the weights and lines between nodes
 			for (int i=0;i<allweight.length;i++){
-			//	if (allweight[i][0].length<=1000000){
-					for (int k=0;k<allweight[i][0].length;k++){
-						nodeclass active = allnode[i][k];
-							for (int a=0;a<allweight[i].length;a++){
+				for (int k=0;k<allweight[i][0].length;k++){
+					nodeclass active = allnode[i][k];
+					if (active.drawnode){
+						for (int a=0;a<allweight[i].length;a++){
+							if (allnode[i+1][a].drawnode){
 								grap.setColor(active.color);
 								int x1 = active.xpos+sizenode/2;
 								int y1 = active.ypos+sizenode/2;
@@ -327,90 +331,41 @@ public class net{
 								int y2 = allnode[i+1][a].ypos+sizenode/2;
 								//Creating lines between nodes where there are weights
 								if (x1>30&&x2>30){
-								grap.drawLine(x1,y1,x2,y2);
-								if (allnode[i][k].drawweight){								
-									double slope = (double)(y1-y2)/(double)(x1-x2);
-									double yinter = (y1-slope*x1);
-									double newx = x1+(x2-x1)/2-55;
-									// Writing properties of the weights approximately halfway between the layers
-									grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
-									grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
-								}	
+									grap.drawLine(x1,y1,x2,y2);
+									if (allnode[i][k].drawweight){								
+										double slope = (double)(y1-y2)/(double)(x1-x2);
+										double yinter = (y1-slope*x1);
+										double newx = x1+(x2-x1)/2-55;
+										// Writing properties of the weights approximately halfway between the layers
+										grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
+										grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
+									}	
 								}
-								
 							}
-						
-					}
-			//	}
-				/*
-					else{
-					int interval = allweight[i][0].length/10;
-					for (int k=0;k<10;k++){
-						nodeclass active = allnode[i][k*interval];
-						for (int a=0;a<allweight[i].length;a++){
-							grap.setColor(active.color);
-							int x1 = active.xpos+sizenode/2;
-							int y1 = active.ypos+sizenode/2;
-							int x2 = allnode[i+1][a].xpos+sizenode/2;
-							int y2 = allnode[i+1][a].ypos+sizenode/2;
-							//Creating lines between nodes where there are weights
-							grap.drawLine(x1,y1,x2,y2);
-							if (allnode[i][k].drawweight){								
-								double slope = (double)(y1-y2)/(double)(x1-x2);
-								double yinter = (y1-slope*x1);
-								double newx = x1+(x2-x1)/2-55;
-								// Writing properties of the weights approximately halfway between the layers
-								grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
-								grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
-							}	
 						}
 					}
 					
-					
-					
-			
 				}
-				*/
+				
 			}
-			
+			//Drawing nodes
 			for (int i=0;i<alllayersize.length;i++){
-				if (alllayersize[i]<=10){
-					for (int k=0;k<alllayersize[i];k++){
-						nodeclass active = allnode[i][k];
-						
-						grap.setColor(Color.WHITE);
-						//Drawing Stats: Bias + Value and the actual node
-						grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, allnode[i][k].ypos);
-						//Writing down characteristics of the node including the value pre and post sigmoid function, the partial derivative of the bias and error
-						if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
-						else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);
-						grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, 40+active.ypos+sizenode);	
-						grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 60+active.ypos+sizenode);	
-						
+				for (int k=0;k<alllayersize[i];k++){
+					nodeclass active = allnode[i][k];
+					if (active.drawnode){
 						grap.setColor(active.color);
+						//Drawing Bias and Bias partial derivitive above node
+						grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos-20);
+						grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, active.ypos);	
+						//Writing down characteristics of the node including the value pre and post sigmoid function and error
+						if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
+						else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);	
+						grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 40+active.ypos+sizenode);	
 						//Drawing the actual node
 						grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
-						
 					}
-				}
-				else{
 					
-					int interval = alllayersize[i]/10;
-					for (int k=0;k<10;k++){
-						nodeclass active = allnode[i][k*interval];
-						grap.setColor(Color.WHITE);
-						//Drawing Stats: Bias + Value and the actual node
-						grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, allnode[i][k].ypos);
-						//Writing down characteristics of the node including the value pre and post sigmoid function, the partial derivative of the bias and error
-						if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
-						else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);
-						grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, 40+active.ypos+sizenode);	
-						grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 60+active.ypos+sizenode);	
-						
-						grap.setColor(active.color);
-						//Drawing the actual node
-						grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
-					}
+					
 				}
 			}
 		}
@@ -586,7 +541,7 @@ public class net{
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
 					nodeclass active = allnode[i][k];
-					if (collision(active.getx(),active.gety(),e.getX(),e.getY(),sizenode,0)){
+					if (active.drawnode&&collision(active.getx(),active.gety(),e.getX(),e.getY(),sizenode,0)){
 						active.drawweight = !active.drawweight;
 						window.repaint();
 						break;
