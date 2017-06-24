@@ -17,6 +17,10 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+
 // Made by Andrew Xue
 // a3xue@edu.uwaterloo.ca
 // Neural net framework! Uses stochastic gradient descent + backpropagation as its learning algorithm. I made
@@ -40,6 +44,7 @@ public class net{
 	int countclick = 0;
 	int maxnodes = 6;
 	double learning_rate = 3;
+	boolean drawdev = false;
 	
 	//Scanner for CSV file
 	Scanner scanner;
@@ -108,7 +113,7 @@ public class net{
 		double avalue = 0;
 		
 		//Whether weight value and weight dev should be drawn
-		boolean drawweight=false;
+		boolean drawweight=true;
 		//Whether node should be drawn
 		boolean drawnode=false;
 		//Stores x and y coordinates of visualization for the node
@@ -164,6 +169,62 @@ public class net{
 	LAST_LINE_START		PAGE_END		LAST_LINE_END
 	 */
 	
+	// Initializes net with a text file (outputted from export_net function). This should only be used for 
+	// already trained and exported neural nets. Error and partial derivatives are not initialized/inaccurate
+	// so backpropagation and gradient_descent should NOT be called. Only feedforward should be used.
+	net(String file) throws FileNotFoundException{
+		// Drawing the partial derivatives is automatically suppressed to increase efficiency
+		drawdev = false;
+		Scanner scanner = new Scanner(new File(file));
+		// First line contains the number of layers
+		String tempnumlayers = scanner.nextLine();
+		numlayer = Character.getNumericValue(tempnumlayers.charAt(0));
+		// Next line contains the size of each of the layers
+		String[] layersizes = scanner.nextLine().split(" ");
+		
+		// Setting up array with all the sizes of the layers
+		alllayersize = new int[numlayer];
+		for (int i=0;i<numlayer;i++){
+			alllayersize[i] = Integer.parseInt(layersizes[i]);
+		}
+		allnode = new nodeclass[numlayer][];
+		System.out.println("Taking "+scanner.nextLine());
+		scanner.nextLine();
+		// Taking in node properties from the file
+		for (int i=0;i<numlayer;i++){
+			allnode[i] = new nodeclass[alllayersize[i]];
+			for (int k=0;k<alllayersize[i];k++){
+				String nodeprop[] = scanner.nextLine().split(" ");
+				nodeclass active;
+				allnode[i][k] = active = new nodeclass();
+				active.bias = Double.parseDouble(nodeprop[0]);
+				active.xpos = Integer.parseInt(nodeprop[1]);
+				active.ypos = Integer.parseInt(nodeprop[2]);
+				if (Integer.parseInt(nodeprop[3])==1){
+					active.drawnode = true;
+				}
+				else{
+					active.drawnode = false;
+				}
+			}
+		}
+		System.out.println("Taking "+scanner.nextLine());
+		//Initializing array of matrices that stores all the weights
+		allweight = new weightclass[alllayersize.length-1][][];
+		for (int i=1;i<alllayersize.length;i++){
+			allweight[i-1] = new weightclass[alllayersize[i]][alllayersize[i-1]];
+			for (int k=0;k<alllayersize[i];k++){
+				String tempweight[] = scanner.nextLine().split(" ");
+				for (int l=0;l<alllayersize[i-1];l++){
+					allweight[i-1][k][l] = new weightclass();
+					allweight[i-1][k][l].weight = Double.parseDouble(tempweight[l]);
+				}
+			}
+		}
+		scanner.close();
+		
+	}
+	
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	net(int arr[]){
@@ -173,11 +234,6 @@ public class net{
 		error = new double[numlayer][];
 		for (int i=0;i<numlayer;i++){
 			error[i] = new double[alllayersize[i]];
-		}
-		for (int i=0;i<arr.length;i++){
-			if (arr[i]==0){
-				throw new RuntimeException("No layers should have 0 nodes.");
-			}
 		}
 		//Initializing array of matrices that stores all the weights
 		allweight = new weightclass[alllayersize.length-1][][];
@@ -192,6 +248,9 @@ public class net{
 		//Initializing matrix that stores properties of nodes
 		allnode = new nodeclass[numlayer][];
 		for (int i=0;i<numlayer;i++){
+			if (alllayersize[i]==0){
+				throw new RuntimeException("No layers should have 0 nodes.");
+			}
 			allnode[i] = new nodeclass[alllayersize[i]];
 			for (int k=0;k<alllayersize[i];k++){
 				nodeclass active = allnode[i][k] = new nodeclass();
@@ -364,7 +423,7 @@ public class net{
 										double newx = x1+(x2-x1)/2-55;
 										// Writing properties of the weights approximately halfway between the layers
 										grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
-										grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
+										if (drawdev)grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
 									}	
 								}
 							}
@@ -381,12 +440,20 @@ public class net{
 					if (active.drawnode){
 						grap.setColor(active.color);
 						//Drawing Bias and Bias partial derivitive above node
-						grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos-20);
-						grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, active.ypos);	
-						//Writing down characteristics of the node including the value pre and post sigmoid function and error
-						if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
-						else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);	
-						grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 40+active.ypos+sizenode);	
+						if (drawdev){
+							grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos-20);
+							grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, active.ypos);	
+							//Writing down characteristics of the node including the value pre and post sigmoid function and error
+							if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
+							else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);	
+							grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 40+active.ypos+sizenode);
+						}
+						else{
+							grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos);
+							if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 15+active.ypos+sizenode);
+							else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 15+active.ypos+sizenode);	
+						}
+							
 						//Drawing the actual node
 						grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
 					}
@@ -409,6 +476,45 @@ public class net{
 			for (int k=0;k<alllayersize[i];k++){
 				allnode[i][k].printnode();
 			}
+		}
+	}
+	
+	// Writes down all the properties of the net (weights, biases) to a txt file
+	protected void export_net(String file){
+		try{
+			FileWriter write = new FileWriter(file);
+			write.append(numlayer+" layers\n");
+			for (int i=0;i<numlayer;i++){
+				write.append(alllayersize[i]+" ");
+			}
+			write.append('\n');
+			write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<alllayersize[i];k++){
+					nodeclass active = allnode[i][k];
+					write.append(Double.toString(active.bias)+" "+active.xpos+" "+active.ypos+" " );
+					if (allnode[i][k].drawnode){
+						write.append("1\n");
+					}
+					else{
+						write.append("0\n");
+					}
+				}
+			}
+			write.append("Weight properties\n");
+			for (int i=0;i<allweight.length;i++){
+				for (int k=0;k<allweight[i].length;k++){
+					for (int j=0;j<allweight[i][k].length;j++){
+						write.append(allweight[i][k][j].weight+" ");
+					}
+					write.append("\n");
+				}
+			}
+			write.close();
+		}
+		catch (Exception e){
+			System.out.println("Error writing to file");
+			e.printStackTrace();
 		}
 	}
 	
@@ -491,7 +597,6 @@ public class net{
 			}
 			if (e.getY()>850){
 				feed();
-				backpropagate();
 				int maxind=0;
 				for (int z=0;z<10;z++){
 					if (allnode[2][maxind].avalue<allnode[2][z].avalue){
