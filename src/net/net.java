@@ -27,13 +27,13 @@ import javax.swing.JPanel;
 public class net{
 	int countclick = 0;
 	int maxnodes = 6;
-	double learning_rate = 4;
+	double learning_rate = 3;
 	
 	//Scanner for CSV file
 	Scanner scanner;
 	
 	// Control if VISUALIZATION appears
-	boolean visual = true;
+	boolean visual = false;
 	
 	//Window for VISUALIZATION
 	JFrame window = new JFrame();
