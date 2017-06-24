@@ -14,13 +14,13 @@ public class testing {
 	static boolean visuala = true;
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		
+		/*
 		net test = new net("TESTTWO.txt");
 		test.create_window();
 		test.scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
 		test.scanner.nextLine();
-
-		/*
+*/
+		
 		
 		int temp[] = {784,80,10};
 		test = new net(temp);
@@ -63,8 +63,6 @@ public class testing {
 				test.gradient_descent(numiter);
 			}
 		}
-		test.export_net("TESTTWO.txt");
-		*/
 		
 		 
 		/*
