@@ -11,18 +11,18 @@ public class testing {
 	double expected[][] = new double [60000][10];
 	static Random xpick = new Random();
 	static boolean autoa = true;
-	static boolean visuala = true;
+	static boolean visuala = false ;
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		/*
-		net test = new net("TESTTWO.txt");
+		
+		net test = new net("TESTTHREE.txt");
 		test.create_window();
 		test.scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
 		test.scanner.nextLine();
-*/
+
 		
-		
-		int temp[] = {784,80,10};
+		/*
+		int temp[] = {784,70,10};
 		test = new net(temp);
 		
 		test.scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
@@ -63,8 +63,9 @@ public class testing {
 				test.gradient_descent(numiter);
 			}
 		}
-		
-		 
+		test.scanner.close();
+		test.export_net("TESTTHREE.txt");
+		 */
 		/*
 		int temp[] = {784,30,10};
 		test = new net(temp);
