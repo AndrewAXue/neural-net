@@ -37,7 +37,7 @@ public class digitrecognize {
 	
 	void go(){
 		try {
-			please = new net("TESTTWO.txt");
+			please = new net("TESTTHREE.txt");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
