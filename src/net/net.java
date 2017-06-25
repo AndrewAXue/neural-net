@@ -33,8 +33,12 @@ import java.io.FileWriter;
 //Matrix matrix multiplication for batches
 //Improve UI more buttons
 //Other improvements for escaping local minima
+
+//DONE!
 //Outputting network weights + node properties to a seperate file for easy use in other programs
 //New constructor that builds neural net off of file (presumably trained one)
+//Handle layers with too many nodes
+
 
 //Known bugs:
 //Slow learning rate. Matrix matrix multiplication should alleviate this
@@ -43,7 +47,7 @@ import java.io.FileWriter;
 public class net{
 	int countclick = 0;
 	int maxnodes = 6;
-	double learning_rate = 3;
+	double learning_rate = 0.5;
 	boolean drawdev = false;
 	
 	//Scanner for CSV file
@@ -276,7 +280,6 @@ public class net{
 				//If there are too many nodes (numnodes>maxnodes) take every nth node so that only maxnodes are 
 				//displayed
 				int interval = alllayersize[i]/maxnodes;
-				System.out.println("interval: "+interval);
 				for (int k=0;k<alllayersize[i];k++){
 					nodeclass active = allnode[i][k] = new nodeclass();
 					active.drawnode=false;
@@ -731,7 +734,8 @@ public class net{
 	protected void backpropagate(){
 		//BP1
 		for (int i=0;i<alllayersize[numlayer-1];i++){
-			error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
+			//error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
+			error[numlayer-1][i] = allnode[numlayer-1][i].avalue-expected[i];
 			allnode[numlayer-1][i].biasdev += error[numlayer-1][i];
 		}
 		//BP2
