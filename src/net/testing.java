@@ -7,21 +7,19 @@ import java.util.Scanner;
 
 public class testing {
 	static net test;
-	double dataset[][] = new double[60000][782];
-	double expected[][] = new double [60000][10];
 	static Random xpick = new Random();
 	static boolean autoa = true;
 	static boolean visuala = false ;
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		
+		/*
 		net test = new net("TESTTHREE.txt");
 		test.create_window();
-		test.scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
+		test.scanner = new Scanner(new File("train.csv"));
 		test.scanner.nextLine();
-
+		*/
 		
-		/*
+		
 		int temp[] = {784,70,10};
 		test = new net(temp);
 		
@@ -65,7 +63,7 @@ public class testing {
 		}
 		test.scanner.close();
 		test.export_net("TESTTHREE.txt");
-		 */
+		 
 		/*
 		int temp[] = {784,30,10};
 		test = new net(temp);
