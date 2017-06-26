@@ -12,6 +12,8 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Scanner;
 
 import javax.swing.JButton;
@@ -24,7 +26,7 @@ import javax.swing.JPanel;
 public class digitrecognize {
 	JFrame window = new JFrame();
 	boolean mousepressed = false;
-	double image[] = new double[784];
+	int image[] = new int[784];
 	static Scanner scanner;
 	Point location;
 	JButton button = new JButton();
@@ -72,7 +74,7 @@ public class digitrecognize {
 			grap.setFont(new Font("Arial Black", Font.BOLD, 30));
 			// Fills in the image of the digit pixel by pixel. The darkness of the pixel is denoted by doublst[i]
 			for (int i=0;i<784;i++){
-				grap.setColor(new Color((int)(image[i]*255),(int)(image[i]*255),(int)(image[i]*255)));
+				grap.setColor(new Color((int)(image[i]),(int)(image[i]),(int)(image[i])));
 				grap.fillRect(i%28, i/28, 1, 1);
 			}
 		}
@@ -90,7 +92,11 @@ public class digitrecognize {
 		}
 		public void mouseReleased(MouseEvent e) {
 			double empty[] = new double[10];
-			please.feedforward(image,empty);
+			double doublst[] = new double[784];
+			for (int i=0;i<784;i++){
+				doublst[i] = image[i]/255.0;
+			}
+			please.feedforward(doublst,empty);
 			double result[] = please.getoutput();
 			int ans = 0;
 			for (int i=0;i<10;i++){
@@ -100,21 +106,35 @@ public class digitrecognize {
 				}
 			}
 			System.out.println(ans);
+			try {
+				FileWriter write = new FileWriter("mynums.csv");
+			
+				write.append("fill\n");
+				write.append("fill,"+image[0]);
+				for (int i=1;i<784;i++){
+					write.append(","+image[i]);
+				}
+				write.close();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
 		}
 		public void mouseDragged(MouseEvent e) {
 			int coord = (e.getY()-5)*28+e.getX();
-			image[coord] = 1;
+			image[coord] = 225;
 			if (coord>=28){
-				image[coord-28] = 1;
+				image[coord-28] = 150;
 			}
 			if (coord<756){
-				image[coord+28] = 1;
+				image[coord+28] = 150;
 			}
 			if (coord%28!=0){
-				image[coord-1] = 1;
+				image[coord-1] = 150;
 			}
 			if (coord%28!=27){
-				image[coord+1] = 1;
+				image[coord+1] = 220;
 			}
 			window.repaint();
 		}

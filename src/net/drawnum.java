@@ -19,17 +19,26 @@ public class drawnum {
 	static Scanner scanner;
 	//28x28 pixels each represented by a single value denoting the darkness in terms of rgb
 	static int doublst[] = new int[784];
+	static double otherdouble[] = new double[784];
     
 	public static void main(String[] args) throws FileNotFoundException {
 		// Initializes a scanner to take in data from the csv file
-		scanner = new Scanner(new File("/Users/andrew/Downloads/train (1).csv"));
+		scanner = new Scanner(new File("train.csv"));
+		//scanner = new Scanner(new File("mynums.csv"));
         scanner.useDelimiter(",");
         scanner.nextLine();
         String[] lst = scanner.nextLine().split(",");
         // Transforms the values on the csv from strings to ints
 		for (int a=0;a<784;a++){
     		doublst[a] = Integer.parseInt(lst[a+1]);
+    		otherdouble[a] = Double.parseDouble(lst[a+1]);
     	}
+		net nettestthree = new net("TESTTHREE.txt");
+		double temp[] = new double[10];
+		nettestthree.feedforward(otherdouble, temp);
+		for (int i=0;i<10;i++){
+			System.out.println(nettestthree.getoutput()[i]);
+		}
 		new drawnum().go();
 	}
 	

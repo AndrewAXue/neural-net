@@ -33,6 +33,7 @@ import java.io.FileWriter;
 //Improve UI more buttons
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
+//Heatmap of different numbers
 
 //DONE!
 //Outputting network weights + node properties to a seperate file for easy use in other programs
@@ -691,14 +692,14 @@ public class net{
 	}
 
 	//Given a list of inputs of the same size as the input layer, feeds the values through the net
-	protected void feedforward(double lst[],double tempexpected[]){
+	protected void feedforward(double data[],double tempexpected[]){
 		expected = tempexpected;
-		if (lst.length!=alllayersize[0]){
+		if (data.length!=alllayersize[0]){
 			System.out.println("ERROR: Input layer size different then number of inputs");
 		}
 		else{
 			for (int i=0;i<alllayersize[0];i++){
-				allnode[0][i].avalue = allnode[0][i].zvalue = lst[i];
+				allnode[0][i].avalue = allnode[0][i].zvalue = data[i];
 			}
 			for (int i=0;i<allweight.length;i++){
 				for (int k=0;k<allweight[i].length;k++){
