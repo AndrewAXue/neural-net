@@ -5,12 +5,10 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -70,7 +68,7 @@ public class digitrecognize {
 		public void paintComponent(Graphics g){
 			Graphics2D grap = (Graphics2D) g;
 			grap.setColor(Color.WHITE);
-			grap.fillRect(0, 0, 1000,1000);//setting up black background
+			grap.setBackground(Color.BLACK);
 			grap.setFont(new Font("Arial Black", Font.BOLD, 30));
 			// Fills in the image of the digit pixel by pixel. The darkness of the pixel is denoted by doublst[i]
 			for (int i=0;i<784;i++){

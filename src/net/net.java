@@ -13,9 +13,11 @@ import java.awt.event.MouseListener;
 import java.util.Random;
 import java.util.Scanner;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -34,6 +36,8 @@ import java.io.FileWriter;
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
 //Heatmap of different numbers
+//Support for different cost functions
+//Alternatives to sigmoid functions (tanx function)
 
 //DONE!
 //Outputting network weights + node properties to a seperate file for easy use in other programs
@@ -121,7 +125,7 @@ public class net{
 		double avalue = 0;
 		
 		//Whether weight value and weight dev should be drawn
-		boolean drawweight=true;
+		boolean drawweight=false;
 		//Whether node should be drawn
 		boolean drawnode=false;
 		//Stores x and y coordinates of visualization for the node
@@ -346,6 +350,9 @@ public class net{
 		//Currently just filling portions of the window to be used in the future for stats and buttons
 		
 		JPanel stats = new JPanel();
+		stats.add(new JButton("FEED!"));
+		stats.add(new JButton("TRAIN BATCH!"));
+		stats.add(new JButton("TRAIN ALL BATCHES!"));
 		stats.setBackground(Color.PINK);
 		
 		cons.fill = GridBagConstraints.BOTH;
@@ -362,6 +369,7 @@ public class net{
 		
 		
 		JPanel downfill = new JPanel();
+		downfill.add(new JTextField());
 		downfill.setBackground(Color.BLUE);
 		
 		
@@ -543,7 +551,7 @@ public class net{
 		String[] lst = scanner.nextLine().split(",");
 		int correct = Integer.parseInt(lst[0]);
 		double ans[] = {0,0,0,0,0,0,0,0,0,0};
-		ans[correct] = 1;
+		//ans[correct] = 1;
     	double doublst[] = new double[784];
     	for (int a=0;a<784;a++){
     		doublst[a] = Double.parseDouble(lst[a+1])/255;

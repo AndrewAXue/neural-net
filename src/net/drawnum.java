@@ -23,11 +23,13 @@ public class drawnum {
     
 	public static void main(String[] args) throws FileNotFoundException {
 		// Initializes a scanner to take in data from the csv file
-		scanner = new Scanner(new File("train.csv"));
+		//scanner = new Scanner(new File("train.csv"));
 		//scanner = new Scanner(new File("mynums.csv"));
+		scanner = new Scanner(new File("test.csv"));
         scanner.useDelimiter(",");
         scanner.nextLine();
         String[] lst = scanner.nextLine().split(",");
+        System.out.println(lst.length);
         // Transforms the values on the csv from strings to ints
 		for (int a=0;a<784;a++){
     		doublst[a] = Integer.parseInt(lst[a+1]);
@@ -37,8 +39,9 @@ public class drawnum {
 		double temp[] = new double[10];
 		nettestthree.feedforward(otherdouble, temp);
 		for (int i=0;i<10;i++){
-			System.out.println(nettestthree.getoutput()[i]);
+			//System.out.println(nettestthree.getoutput()[i]);
 		}
+		System.out.println();
 		new drawnum().go();
 	}
 	

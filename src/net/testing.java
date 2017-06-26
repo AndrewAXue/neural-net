@@ -12,18 +12,24 @@ public class testing {
 	static boolean visuala = false ;
 	
 	public static void main(String[] args) throws FileNotFoundException {
+		net test = new net("TESTTWO.txt");
+		test.scanner = new Scanner(new File("test.csv"));
+        test.scanner.useDelimiter(",");
+        System.out.println(test.scanner.nextLine());
+		test.create_window();
 		/*
 		net test = new net("TESTTHREE.txt");
 		test.create_window();
-		test.scanner = new Scanner(new File("train.csv"));
+	
+		test.scanner = new Scanner(new File("mynums.csv"));
 		test.scanner.nextLine();
 		*/
 		
-		
+		/*
 		int temp[] = {784,70,10};
 		test = new net(temp);
 		
-		test.scanner = new Scanner(new File("/Users/Andrew/Downloads/train (1).csv"));
+		test.scanner = new Scanner(new File("train.csv"));
 		test.scanner.nextLine();
 		test.auto = autoa;
 		if (visuala){
@@ -63,7 +69,7 @@ public class testing {
 		}
 		test.scanner.close();
 		test.export_net("TESTTHREE.txt");
-		 
+		 */
 		/*
 		int temp[] = {784,30,10};
 		test = new net(temp);
