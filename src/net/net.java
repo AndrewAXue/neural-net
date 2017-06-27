@@ -119,7 +119,8 @@ public class net{
 	
 	// derivative of the sigmoid function used in backpropagation
 	double sigmoidprime(double x){
-		return (Math.exp(-x))/(Math.pow(1+Math.exp(-x), 2));
+		double sig = sigmoid(x);
+		return sig*(1-sig);
 	}
 		
 	// A weight in the neural net. This class will be stored in a 3d array of weights, where the first indice
@@ -763,20 +764,19 @@ public class net{
 		for (int i=numlayer-2;i>=0;i--){
 			for (int k=0;k<alllayersize[i];k++){
 				double newerror=0;
+				nodeclass active = allnode[i][k];
+				
 				for (int a=0;a<alllayersize[i+1];a++){
-					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime(allnode[i][k].zvalue);
+					weightclass weighttarg = allweight[i][a][k];
+					double errortarg = error[i+1][a];
+					newerror += weighttarg.weight*errortarg*sigmoidprime(active.zvalue);
+					//BP4
+					weighttarg.weightdev += active.avalue*errortarg;
 				}
+				
 				error[i][k] = newerror;
 				//BP3
-				allnode[i][k].biasdev += error[i][k];
-			}
-		}
-		//BP4
-		for (int i=0;i<numlayer-1;i++){
-			for (int k=0;k<alllayersize[i];k++){
-				for (int a=0;a<alllayersize[i+1];a++){
-					allweight[i][a][k].weightdev += allnode[i][k].avalue*error[i+1][a];
-				}
+				active.biasdev += newerror;
 			}
 		}
 		window.repaint();

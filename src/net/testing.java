@@ -8,7 +8,7 @@ import java.util.Scanner;
 public class testing {
 	static net test;
 	static Random xpick = new Random();
-	static boolean autoa = false;
+	static boolean autoa = true;
 	static boolean visuala = true;
 	
 	public static void main(String[] args) throws FileNotFoundException {
@@ -41,10 +41,11 @@ public class testing {
 		
 		if (test.auto){
 			for (int i=0;i<419;i++){
+				System.out.print(i+ " ");
 				test.learn_batch(test.batch_size);
 			}
 		}
-		//test.scanner.close();
+		test.scanner.close();
 		test.export_net("TESTFOUR.txt");
 		 
 		/*
