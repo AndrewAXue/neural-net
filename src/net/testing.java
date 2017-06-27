@@ -44,9 +44,10 @@ public class testing {
 				System.out.print(i+ " ");
 				test.learn_batch(test.batch_size);
 			}
+			test.scanner.close();
 		}
-		test.scanner.close();
-		test.export_net("TESTFOUR.txt");
+		
+		//test.export_net("TESTFOUR.txt");
 		 
 		/*
 		int temp[] = {784,30,10};

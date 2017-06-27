@@ -73,7 +73,7 @@ public class net{
 	// Control if VISUALIZATION appears
 	boolean visual = true;
 	// Buttons used in the VISUALIZATION
-	JButton train_batch_button,feed_button;
+	JButton train_batch_button,feed_button,train_all_batch_button;
 	// Sets limit for maximum number of nodes per layer displayed in visualization
 	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
@@ -374,7 +374,9 @@ public class net{
 		train_batch_button = new JButton("TRAIN BATCH!");
 		train_batch_button.addActionListener(new act());
 		buttons.add(train_batch_button);
-		buttons.add(new JButton("TRAIN ALL BATCHES!"));
+		train_all_batch_button =  new JButton("TRAIN ALL BATCHES!");
+		train_all_batch_button.addActionListener(new act());
+		buttons.add(train_all_batch_button);
 		buttons.setBackground(Color.PINK);
 		
 		cons.fill = GridBagConstraints.BOTH;
@@ -432,6 +434,12 @@ public class net{
 		public void actionPerformed(ActionEvent e) {
 			if (e.getSource() == train_batch_button){
 				learn_batch(batch_size);
+			}
+			else if (e.getSource() == train_all_batch_button){
+				for (int i=0;i<100;i++){
+					System.out.print(i+" ");
+					learn_batch(batch_size);
+				}
 			}
 			
 		}
@@ -761,17 +769,21 @@ public class net{
 		}
 		expected = null;
 		//BP2
+		
 		for (int i=numlayer-2;i>=0;i--){
 			for (int k=0;k<alllayersize[i];k++){
 				double newerror=0;
 				nodeclass active = allnode[i][k];
+				double sigmoidprime = sigmoidprime(active.zvalue);
 				
 				for (int a=0;a<alllayersize[i+1];a++){
+					
 					weightclass weighttarg = allweight[i][a][k];
 					double errortarg = error[i+1][a];
-					newerror += weighttarg.weight*errortarg*sigmoidprime(active.zvalue);
+					newerror += weighttarg.weight*errortarg*sigmoidprime;
 					//BP4
 					weighttarg.weightdev += active.avalue*errortarg;
+					
 				}
 				
 				error[i][k] = newerror;
@@ -779,6 +791,7 @@ public class net{
 				active.biasdev += newerror;
 			}
 		}
+		
 		window.repaint();
 	}
 	
