@@ -89,12 +89,11 @@ public class digitrecognize {
 			window.repaint();
 		}
 		public void mouseReleased(MouseEvent e) {
-			double empty[] = new double[10];
 			double doublst[] = new double[784];
 			for (int i=0;i<784;i++){
 				doublst[i] = image[i]/255.0;
 			}
-			please.feedforward(doublst,empty);
+			please.feedforward(doublst);
 			double result[] = please.getoutput();
 			int ans = 0;
 			for (int i=0;i<10;i++){

@@ -18,7 +18,6 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -48,6 +47,10 @@ import java.io.FileWriter;
 //Known bugs:
 //Slow learning rate. Matrix matrix multiplication should alleviate this
 //Relatively low accuracy 85-90 after trained. Cross entropy should help, maybe playing with learning rates more
+//Backprop and possibly gradient descent are exceptionally slow. Backprop should be as computationally expensive
+//	as feedforward, which is significantly quicker.
+//Digits inputted in digitrecognize, when drawn in drawnum are slightly off center.
+
 
 public class net{
 	int countclick = 0;
@@ -583,6 +586,34 @@ public class net{
 		}
 	}
 	
+	protected void learn_batch(){
+		int corr=0;
+		for (int i=0;i<100;i++){
+			
+			feed_and_set_expected();
+			int maxind=0;
+			for (int z=0;z<10;z++){
+				if (allnode[2][maxind].avalue<allnode[2][z].avalue){
+					maxind=z;
+				}
+			}
+			int choice=0;
+			for (int a=0;a<10;a++){
+				if (expected[a]==1){
+					choice=a;
+					break;
+				}
+			}
+			if (choice==maxind){
+				corr++;
+			}
+			backpropagate();
+		}
+		gradient_descent(100);
+		
+		System.out.println("CORRECT: "+corr);
+	}
+	
 	private class mouseevent implements MouseListener{
 		// Toggles whether the weights of a certain node should be shown. Done by clicking the node.
 		public void mouseClicked(MouseEvent e) {
@@ -618,31 +649,7 @@ public class net{
 				window.repaint();
 			}
 			if (e.getY()>850){
-				int corr=0;
-				for (int i=0;i<100;i++){
-					
-					feed_and_set_expected();
-					int maxind=0;
-					for (int z=0;z<10;z++){
-						if (allnode[2][maxind].avalue<allnode[2][z].avalue){
-							maxind=z;
-						}
-					}
-					int choice=0;
-					for (int a=0;a<10;a++){
-						if (expected[a]==1){
-							choice=a;
-							break;
-						}
-					}
-					if (choice==maxind){
-						corr++;
-					}
-					//backpropagate();
-				}
-				//gradient_descent(100);
-				
-				System.out.println("CORRECT: "+corr);
+				learn_batch();
 				/*
 				int cor=0;
 				int numiter = 100;

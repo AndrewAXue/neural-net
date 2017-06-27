@@ -20,28 +20,19 @@ public class drawnum {
 	//28x28 pixels each represented by a single value denoting the darkness in terms of rgb
 	static int doublst[] = new int[784];
 	static double otherdouble[] = new double[784];
+	static net test;
     
 	public static void main(String[] args) throws FileNotFoundException {
 		// Initializes a scanner to take in data from the csv file
 		//scanner = new Scanner(new File("train.csv"));
 		//scanner = new Scanner(new File("mynums.csv"));
+		test = new net("TESTTWO.txt");
 		scanner = new Scanner(new File("test.csv"));
         scanner.useDelimiter(",");
         scanner.nextLine();
         String[] lst = scanner.nextLine().split(",");
         System.out.println(lst.length);
         // Transforms the values on the csv from strings to ints
-		for (int a=0;a<784;a++){
-    		doublst[a] = Integer.parseInt(lst[a+1]);
-    		otherdouble[a] = Double.parseDouble(lst[a+1]);
-    	}
-		net nettestthree = new net("TESTTHREE.txt");
-		double temp[] = new double[10];
-		nettestthree.feedforward(otherdouble, temp);
-		for (int i=0;i<10;i++){
-			//System.out.println(nettestthree.getoutput()[i]);
-		}
-		System.out.println();
 		new drawnum().go();
 	}
 	
@@ -76,10 +67,22 @@ public class drawnum {
 		public void mouseClicked(MouseEvent e) {
 			// Scans in the next line in the csv and repeats the process above
 			if (scanner.hasNextLine()){
+				double feed[] = new double[784];
 				String[] lst = scanner.nextLine().split(",");
 				for (int a=0;a<784;a++){
 	        		doublst[a] = Integer.parseInt(lst[a+1]);
+	        		feed[a] = doublst[a]/255.0;
 	        	}
+				test.feedforward(feed);
+				double result[] = test.getoutput();
+				int ans = 0;
+				for (int i=0;i<10;i++){
+					System.out.println(result[i]);
+					if (result[i]>result[ans]){
+						ans = i;
+					}
+				}
+				System.out.println(ans+"\n");
 				window.repaint();
 			}
 		}

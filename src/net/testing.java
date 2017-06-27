@@ -8,7 +8,7 @@ import java.util.Scanner;
 public class testing {
 	static net test;
 	static Random xpick = new Random();
-	static boolean autoa = true;
+	static boolean autoa = false;
 	static boolean visuala = true;
 	
 	public static void main(String[] args) throws FileNotFoundException {
@@ -41,33 +41,8 @@ public class testing {
 		int numiter = 100;
 		if (test.auto){
 			for (int i=0;i<419;i++){
-				int please=0;
-				for (int k=0;k<numiter;k++){
-					String[] lst = test.scanner.nextLine().split(",");
-					int correct = Integer.parseInt(lst[0]);
-					//System.out.println(correct);
-					double ans[] = {0,0,0,0,0,0,0,0,0,0};
-					ans[correct] = 1;
-			    	double doublst[] = new double[784];
-			    	for (int a=0;a<784;a++){
-			    		doublst[a] = Double.parseDouble(lst[a+1])/255;
-			    	}
-					test.feedforward(doublst);
-					test.set_expected(ans);
-					test.backpropagate();
-					double out[] = test.getoutput();
-					int maxind = 0;
-					for (int z=0;z<10;z++){
-						if (out[maxind]<out[z]){
-							maxind=z;
-						}
-					}
-					if (maxind==correct){
-						please++;
-					}
-				}
-				System.out.println(i+" correct "+please+" out of "+numiter);
-				test.gradient_descent(numiter);
+				int corr=0;
+				test.learn_batch();
 			}
 		}
 		//test.scanner.close();
