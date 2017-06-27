@@ -32,17 +32,16 @@ public class testing {
 		test = new net(temp);
 		
 		test.scanner = new Scanner(new File("train.csv"));
+		test.batch_size = 100;
 		test.scanner.nextLine();
 		test.auto = autoa;
 		if (visuala){
 			test.create_window();
 		}
 		
-		int numiter = 100;
 		if (test.auto){
 			for (int i=0;i<419;i++){
-				int corr=0;
-				test.learn_batch();
+				test.learn_batch(test.batch_size);
 			}
 		}
 		//test.scanner.close();

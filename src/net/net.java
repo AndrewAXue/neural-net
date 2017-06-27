@@ -8,6 +8,8 @@ import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Random;
@@ -53,22 +55,42 @@ import java.io.FileWriter;
 
 
 public class net{
-	int countclick = 0;
-	int maxnodes = 6;
-	double learning_rate = 0.5;
-	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
-	boolean drawdev = false;
-	// Choosing which cost function to use
-	boolean quadratic = false;
 	
 	//Scanner for CSV file
 	Scanner scanner;
 	
+	//HYPERPARAMETERS
+	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
+	// are slower but steadier
+	double learning_rate = 0.5;
+	// Choosing which cost function to use
+	boolean quadratic = false;
+	// Stores the size of each batch for training
+	int batch_size;
+	
+	
+	//VISUALIZATION ASPECTS
 	// Control if VISUALIZATION appears
 	boolean visual = true;
-	
+	// Buttons used in the VISUALIZATION
+	JButton train_batch_button,feed_button;
+	// Sets limit for maximum number of nodes per layer displayed in visualization
+	int maxnodes = 6;
+	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
+	boolean drawdev = false;
 	//Window for VISUALIZATION
 	JFrame window = new JFrame();
+	//Size of VISUALIZATION
+	int visualdim = 900;
+	// Distance from the top of the JPanel to the first node in  each layer
+	int distfromtop = 50;
+	// Distance from the side of the panel to the first and last layer
+	int distfromside = 50;
+	// Size of each node
+	int sizenode = 50;
+	
+	
+	//Characteristics of the net
 	//Number of layers and size of each one
 	int numlayer;
 	int alllayersize[];
@@ -81,7 +103,7 @@ public class net{
 	//Properties of each node
 	nodeclass allnode[][];
 	//Weights of all the weights
-	weightclass  allweight[][][];
+	weightclass allweight[][][];
 	
 	//Error of each node (backpropagation)
 	double error[][];
@@ -89,13 +111,6 @@ public class net{
 	double expected[];
 	//Whether to use automatic testing or not
 	boolean auto = false;
-	//Size of VISUALIZATION
-	int visualdim = 900;
-	
-	//BELOW VARIABLES ARE FOR USE IN THE VISUALIZTION
-	int distfromtop = 50;
-	int distfromside = 50;
-	int sizenode = 50;
 	
 	// sigmoid function for "smoothing out" the output values
 	double sigmoid(double x){
@@ -352,11 +367,14 @@ public class net{
 		
 		//Currently just filling portions of the window to be used in the future for stats and buttons
 		
-		JPanel stats = new JPanel();
-		stats.add(new JButton("FEED!"));
-		stats.add(new JButton("TRAIN BATCH!"));
-		stats.add(new JButton("TRAIN ALL BATCHES!"));
-		stats.setBackground(Color.PINK);
+		JPanel buttons = new JPanel();
+		feed_button = new JButton("FEED!");
+		buttons.add(feed_button);
+		train_batch_button = new JButton("TRAIN BATCH!");
+		train_batch_button.addActionListener(new act());
+		buttons.add(train_batch_button);
+		buttons.add(new JButton("TRAIN ALL BATCHES!"));
+		buttons.setBackground(Color.PINK);
 		
 		cons.fill = GridBagConstraints.BOTH;
 		cons.weightx = 1;
@@ -368,7 +386,7 @@ public class net{
 		cons.anchor = GridBagConstraints.PAGE_START;
 		cons.insets = new Insets(0,0,0,0);
 		
-		everything.add(stats,cons);
+		everything.add(buttons,cons);
 		
 		
 		JPanel downfill = new JPanel();
@@ -405,6 +423,18 @@ public class net{
 		
 		window.add(everything);
 		window.setVisible(true);
+	}
+	
+	public class act implements ActionListener{
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			if (e.getSource() == train_batch_button){
+				learn_batch(batch_size);
+			}
+			
+		}
+		
 	}
 	
 	// Graphics aspect of the framework
@@ -586,9 +616,9 @@ public class net{
 		}
 	}
 	
-	protected void learn_batch(){
+	protected void learn_batch(int batch_size){
 		int corr=0;
-		for (int i=0;i<100;i++){
+		for (int i=0;i<batch_size;i++){
 			
 			feed_and_set_expected();
 			int maxind=0;
@@ -609,7 +639,7 @@ public class net{
 			}
 			backpropagate();
 		}
-		gradient_descent(100);
+		gradient_descent(batch_size);
 		
 		System.out.println("CORRECT: "+corr);
 	}
@@ -649,58 +679,7 @@ public class net{
 				window.repaint();
 			}
 			if (e.getY()>850){
-				learn_batch();
-				/*
-				int cor=0;
-				int numiter = 100;
-				if (countclick<400){
-					for (int i=0;i<numiter;i++){
-						feed();
-						backpropagate();
-						int maxind=0;
-						for (int z=0;z<10;z++){
-							if (allnode[2][maxind].avalue<allnode[2][z].avalue){
-								maxind=z;
-							}
-						}
-						int choice=0;
-						for (int a=0;a<10;a++){
-							if (expected[a]==1){
-								choice=a;
-								break;
-							}
-						}
-						if (choice==maxind){
-							cor++;
-						}
-					}
-				gradient_descent(numiter);
-				}
-				else{
-					feed();
-					backpropagate();
-					int maxind=0;
-					for (int z=0;z<10;z++){
-						if (allnode[2][maxind].avalue<allnode[2][z].avalue){
-							maxind=z;
-						}
-					}
-					int choice=0;
-					for (int a=0;a<10;a++){
-						if (expected[a]==1){
-							choice=a;
-							break;
-						}
-					}
-					System.out.println(choice+" BAH "+maxind);
-					gradient_descent(numiter);
-				}
-				System.out.println(countclick+" Correct: "+cor);
-				countclick++;
-					
-				
-				*/
-				
+				learn_batch(100);
 				window.repaint();
 			}
 			boolean done = false;
