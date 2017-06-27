@@ -9,14 +9,16 @@ public class testing {
 	static net test;
 	static Random xpick = new Random();
 	static boolean autoa = true;
-	static boolean visuala = false ;
+	static boolean visuala = true;
 	
 	public static void main(String[] args) throws FileNotFoundException {
+		/*
 		net test = new net("TESTTWO.txt");
 		test.scanner = new Scanner(new File("test.csv"));
         test.scanner.useDelimiter(",");
         System.out.println(test.scanner.nextLine());
 		test.create_window();
+		*/
 		/*
 		net test = new net("TESTTHREE.txt");
 		test.create_window();
@@ -25,7 +27,7 @@ public class testing {
 		test.scanner.nextLine();
 		*/
 		
-		/*
+		
 		int temp[] = {784,70,10};
 		test = new net(temp);
 		
@@ -50,7 +52,8 @@ public class testing {
 			    	for (int a=0;a<784;a++){
 			    		doublst[a] = Double.parseDouble(lst[a+1])/255;
 			    	}
-					test.feedforward(doublst,ans);
+					test.feedforward(doublst);
+					test.set_expected(ans);
 					test.backpropagate();
 					double out[] = test.getoutput();
 					int maxind = 0;
@@ -63,13 +66,13 @@ public class testing {
 						please++;
 					}
 				}
-				System.out.println("PLEASE "+i+" "+please+" out of "+numiter);
+				System.out.println(i+" correct "+please+" out of "+numiter);
 				test.gradient_descent(numiter);
 			}
 		}
-		test.scanner.close();
-		test.export_net("TESTTHREE.txt");
-		 */
+		//test.scanner.close();
+		test.export_net("TESTFOUR.txt");
+		 
 		/*
 		int temp[] = {784,30,10};
 		test = new net(temp);
