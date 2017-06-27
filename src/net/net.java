@@ -18,7 +18,6 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -48,6 +47,10 @@ import java.io.FileWriter;
 //Known bugs:
 //Slow learning rate. Matrix matrix multiplication should alleviate this
 //Relatively low accuracy 85-90 after trained. Cross entropy should help, maybe playing with learning rates more
+//Backprop and possibly gradient descent are exceptionally slow. Backprop should be as computationally expensive
+//	as feedforward, which is significantly quicker.
+//Digits inputted in digitrecognize, when drawn in drawnum are slightly off center.
+
 
 public class net{
 	int countclick = 0;
@@ -539,7 +542,7 @@ public class net{
 	}
 	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
-	public void feed(){
+	public void feed_and_set_expected(){
 		//double rand = 0.5;
 		/*
 		double rand = weightchoose.nextDouble();
@@ -551,13 +554,20 @@ public class net{
 		String[] lst = scanner.nextLine().split(",");
 		int correct = Integer.parseInt(lst[0]);
 		double ans[] = {0,0,0,0,0,0,0,0,0,0};
-		//ans[correct] = 1;
+		ans[correct] = 1;
     	double doublst[] = new double[784];
     	for (int a=0;a<784;a++){
     		doublst[a] = Double.parseDouble(lst[a+1])/255;
     	}
-		feedforward(doublst,ans);
-		
+		feedforward(doublst);
+		set_expected(ans);
+	}
+	 
+	
+	// Used in combination with feed for training only. When doing testing questions, this does not need
+	// to be called.
+	void set_expected(double[] tempexpected){
+		expected = tempexpected;
 	}
 	
 	// Clears all the partial derivatives. Should be called after gradient descent
@@ -574,6 +584,34 @@ public class net{
 				}
 			}
 		}
+	}
+	
+	protected void learn_batch(){
+		int corr=0;
+		for (int i=0;i<100;i++){
+			
+			feed_and_set_expected();
+			int maxind=0;
+			for (int z=0;z<10;z++){
+				if (allnode[2][maxind].avalue<allnode[2][z].avalue){
+					maxind=z;
+				}
+			}
+			int choice=0;
+			for (int a=0;a<10;a++){
+				if (expected[a]==1){
+					choice=a;
+					break;
+				}
+			}
+			if (choice==maxind){
+				corr++;
+			}
+			backpropagate();
+		}
+		gradient_descent(100);
+		
+		System.out.println("CORRECT: "+corr);
 	}
 	
 	private class mouseevent implements MouseListener{
@@ -599,7 +637,7 @@ public class net{
 				}
 				System.out.println("called");
 				*/
-				feed();
+				feed_and_set_expected();
 				window.repaint();
 			}
 			if (e.getY()<50){
@@ -611,21 +649,7 @@ public class net{
 				window.repaint();
 			}
 			if (e.getY()>850){
-				feed();
-				int maxind=0;
-				for (int z=0;z<10;z++){
-					if (allnode[2][maxind].avalue<allnode[2][z].avalue){
-						maxind=z;
-					}
-				}
-				int choice=0;
-				for (int a=0;a<10;a++){
-					if (expected[a]==1){
-						choice=a;
-						break;
-					}
-				}
-				System.out.println(choice+" BAH "+maxind);
+				learn_batch();
 				/*
 				int cor=0;
 				int numiter = 100;
@@ -700,8 +724,7 @@ public class net{
 	}
 
 	//Given a list of inputs of the same size as the input layer, feeds the values through the net
-	protected void feedforward(double data[],double tempexpected[]){
-		expected = tempexpected;
+	protected void feedforward(double data[]){
 		if (data.length!=alllayersize[0]){
 			System.out.println("ERROR: Input layer size different then number of inputs");
 		}
@@ -738,18 +761,25 @@ public class net{
 		return output;
 	}
 	
-	//Backpropagates errors through the neural net. At the date this was written, the assumed cost function
-	//is the quadratic cost function, and all derivatives will reflect this. This first calculates the 
+	//Backpropagate() should only be called after a feedfoward and a set expected value is called. Otherwise
+	//undefined behaviour will occur.
+	
+	//Backpropagates errors through the neural net. Either the quadratic or cross-entropy cost function can
+	//be used. Generally the cross-entropy cost function is better, so it is default. This first calculates the 
 	//partial derivative of all the weights and biases, and returns the gradient. This gradient should then
-	//be averaged over the number of inputs.
+	//be averaged over the number of inputs and adjustments will be made in the gradient_descent function.
 	//The notations BPX refer to the specific fundemental backpropagation algorithms
 	protected void backpropagate(){
 		//BP1
+		if (expected==null){
+			throw new NullPointerException("\nExpected array is empty! This is caused when backpropagate is called before the array of expected value is set");
+		}
 		for (int i=0;i<alllayersize[numlayer-1];i++){
 			if (quadratic) error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
 			else error[numlayer-1][i] = allnode[numlayer-1][i].avalue-expected[i];
 			allnode[numlayer-1][i].biasdev += error[numlayer-1][i];
 		}
+		expected = null;
 		//BP2
 		for (int i=numlayer-2;i>=0;i--){
 			for (int k=0;k<alllayersize[i];k++){
