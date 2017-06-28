@@ -11,7 +11,7 @@ public class kaggletest {
 	public static void main(String[] args) throws IOException {
 		FileWriter write = new FileWriter("answer.csv");
 		write.append("ImageID,Label\n");
-		net test = new net("TESTFIVE.txt");
+		net test = new net("TESTSEVEN.txt");
 		Scanner scanner = new Scanner(new File("test.csv"));
 		scanner.nextLine();
 		for (int a=0;a<28000;a++){

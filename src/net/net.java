@@ -59,10 +59,10 @@ public class net{
 	//Scanner for CSV file
 	Scanner scanner;
 	
-	//HYPERPARAMETERS
+	//HYPERPARAMETERS. These should be set when the net is initialized.
 	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
 	// are slower but steadier
-	double learning_rate = 3.5;
+	double learning_rate = 3;
 	// Choosing which cost function to use (quadratic or cross-entropy at time of writing)
 	boolean quadratic = false;
 	// Stores the size of each batch for training
@@ -138,6 +138,8 @@ public class net{
 	protected class nodeclass{
 		double bias = 0;
 		double biasdev = 0;
+		double zvaluematrix[];
+		double avaluematrix[];
 		//Weighted sum of all the inputed + bias of the node
 		double zvalue = 0;
 		//avalue is the output of the node and by definition avalue = sigmoid(zvalue)
@@ -787,8 +789,32 @@ public class net{
 		System.out.println();
 		System.out.println("Cost: "+Math.pow((expected[0]-getoutput()[0]),2)/2);
 		*/
-		
 	}
+	
+	//Work in progress matrix matrix multiplication. The function would not be much quicker as more advanced
+	//linear algebra theorums would have to be used to really see an impact.
+	/*
+	protected void feed_batch(double [][] data){
+		if (data[0].length!=alllayersize[0]){
+			System.out.println("ERROR: Input layer size different then number of inputs");
+		}
+		else{
+			for (int i=0;i<alllayersize[0];i++){
+				allnode[0][i].avaluematrix = allnode[0][i].zvaluematrix = new double[data.length];
+				for (int k=0;k<data.length;k++){
+					allnode[0][i].avaluematrix[k] = allnode[0][i].zvaluematrix[k] = data[k][i];
+				}
+			}
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<allnode[i][0].avaluematrix.length;k++){
+					for (int a=0;a<alllayersize[i];a++){
+						 
+					}
+				}
+			}
+		}
+	}
+	*/
 	
 	//Returns the output layer of the net. Should be called after a feedforward is called.
 	protected double[] getoutput(){
