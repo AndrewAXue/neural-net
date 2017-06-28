@@ -55,25 +55,27 @@ import java.io.FileWriter;
 
 
 public class net{
-	
+	boolean print = false;
 	//Scanner for CSV file
 	Scanner scanner;
 	
 	//HYPERPARAMETERS
 	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
 	// are slower but steadier
-	double learning_rate = 0.5;
-	// Choosing which cost function to use
+	double learning_rate = 3.5;
+	// Choosing which cost function to use (quadratic or cross-entropy at time of writing)
 	boolean quadratic = false;
 	// Stores the size of each batch for training
 	int batch_size;
+	// Whether to softmax the results
+	boolean softmax = false;
 	
 	
 	//VISUALIZATION ASPECTS
 	// Control if VISUALIZATION appears
 	boolean visual = true;
 	// Buttons used in the VISUALIZATION
-	JButton train_batch_button,feed_button;
+	JButton train_batch_button,feed_button,train_all_batch_button;
 	// Sets limit for maximum number of nodes per layer displayed in visualization
 	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
@@ -119,7 +121,8 @@ public class net{
 	
 	// derivative of the sigmoid function used in backpropagation
 	double sigmoidprime(double x){
-		return (Math.exp(-x))/(Math.pow(1+Math.exp(-x), 2));
+		double sig = sigmoid(x);
+		return sig*(1-sig);
 	}
 		
 	// A weight in the neural net. This class will be stored in a 3d array of weights, where the first indice
@@ -258,6 +261,7 @@ public class net{
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	net(int arr[]){
+		
 		alllayersize = arr;
 		numlayer = arr.length;
 		// Creating an error matrix
@@ -373,7 +377,9 @@ public class net{
 		train_batch_button = new JButton("TRAIN BATCH!");
 		train_batch_button.addActionListener(new act());
 		buttons.add(train_batch_button);
-		buttons.add(new JButton("TRAIN ALL BATCHES!"));
+		train_all_batch_button =  new JButton("TRAIN ALL BATCHES!");
+		train_all_batch_button.addActionListener(new act());
+		buttons.add(train_all_batch_button);
 		buttons.setBackground(Color.PINK);
 		
 		cons.fill = GridBagConstraints.BOTH;
@@ -431,6 +437,12 @@ public class net{
 		public void actionPerformed(ActionEvent e) {
 			if (e.getSource() == train_batch_button){
 				learn_batch(batch_size);
+			}
+			else if (e.getSource() == train_all_batch_button){
+				for (int i=0;i<100;i++){
+					System.out.print(i+" ");
+					learn_batch(batch_size);
+				}
 			}
 			
 		}
@@ -531,7 +543,27 @@ public class net{
 	protected void export_net(String file){
 		try{
 			FileWriter write = new FileWriter(file);
-			write.append(numlayer+" layers\n");
+			/*
+			 * double learning_rate = 1.5;
+				// Choosing which cost function to use
+				boolean quadratic = false;
+				// Stores the size of each batch for training
+				int batch_size;
+				// Whether to softmax the results
+				boolean softmax = false;
+			 */
+			write.append(numlayer+" layers "+" learning rate: "+learning_rate);
+			if (quadratic){
+				write.append(" quadratic ");
+			}
+			else{
+				write.append(" cross-entropy ");
+			}
+			write.append(" batch size "+batch_size);
+			if (softmax){
+				write.append("softmax");
+			}
+			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
 			}
@@ -640,7 +672,7 @@ public class net{
 			backpropagate();
 		}
 		gradient_descent(batch_size);
-		
+		if (print)
 		System.out.println("CORRECT: "+corr);
 	}
 	
@@ -721,6 +753,15 @@ public class net{
 					allnode[i+1][k].avalue = sigmoid(allnode[i+1][k].zvalue);
 				}
 			}
+			if (softmax){
+				double sum = 0;
+				for (int i=0;i<alllayersize[numlayer-1];i++){
+					sum+=allnode[numlayer-1][i].avalue;
+				}
+				for (int i=0;i<alllayersize[numlayer-1];i++){
+					allnode[numlayer-1][i].avalue/=sum;
+				}
+			}
 		}
 		/*
 		System.out.print("Expected: "+expected[0]);
@@ -760,25 +801,27 @@ public class net{
 		}
 		expected = null;
 		//BP2
+		
 		for (int i=numlayer-2;i>=0;i--){
 			for (int k=0;k<alllayersize[i];k++){
 				double newerror=0;
+				nodeclass active = allnode[i][k];
+				double sigmoidprime = sigmoidprime(active.zvalue);
+				
 				for (int a=0;a<alllayersize[i+1];a++){
-					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime(allnode[i][k].zvalue);
+					
+					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime;
+					//BP4
+					allweight[i][a][k].weightdev += active.avalue*error[i+1][a];
+					
 				}
+				
 				error[i][k] = newerror;
 				//BP3
-				allnode[i][k].biasdev += error[i][k];
+				active.biasdev += newerror;
 			}
 		}
-		//BP4
-		for (int i=0;i<numlayer-1;i++){
-			for (int k=0;k<alllayersize[i];k++){
-				for (int a=0;a<alllayersize[i+1];a++){
-					allweight[i][a][k].weightdev += allnode[i][k].avalue*error[i+1][a];
-				}
-			}
-		}
+		
 		window.repaint();
 	}
 	
@@ -799,6 +842,7 @@ public class net{
 				}
 			}
 		}
+		//Resetting partial derivatives
 		cleardev();
 		window.repaint();
 	}
