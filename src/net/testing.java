@@ -77,7 +77,7 @@ public class testing {
 			test.scanner.close();
 		}
 		
-		test.export_net("TESTSEVEN.txt");
+		//test.export_net("TESTSEVEN.txt");
 		 
 		/*
 		int temp[] = {784,30,10};

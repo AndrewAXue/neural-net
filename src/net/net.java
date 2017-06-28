@@ -68,7 +68,7 @@ public class net{
 	// Stores the size of each batch for training
 	int batch_size;
 	// Whether to softmax the results
-	boolean softmax = false;
+	boolean softmax = true;
 	
 	
 	//VISUALIZATION ASPECTS
@@ -776,10 +776,11 @@ public class net{
 			if (softmax){
 				double sum = 0;
 				for (int i=0;i<alllayersize[numlayer-1];i++){
-					sum+=allnode[numlayer-1][i].avalue;
+					sum+=Math.exp(allnode[numlayer-1][i].zvalue);
+				
 				}
 				for (int i=0;i<alllayersize[numlayer-1];i++){
-					allnode[numlayer-1][i].avalue/=sum;
+					allnode[numlayer-1][i].avalue = Math.exp(allnode[numlayer-1][i].zvalue)/sum;
 				}
 			}
 		}
