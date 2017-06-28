@@ -9,7 +9,7 @@ public class testing {
 	static net test;
 	static Random xpick = new Random();
 	static boolean autoa = true;
-	static boolean visuala = true;
+	static boolean visuala = false;
 	
 	public static void main(String[] args) throws FileNotFoundException {
 		/*
@@ -26,28 +26,54 @@ public class testing {
 		test.scanner = new Scanner(new File("mynums.csv"));
 		test.scanner.nextLine();
 		*/
-		
-		
+		/*
+		for (double i=0.5;i<=5.0;i+=0.5){
+			System.out.println("Learning rate: "+i);
+			int temp[] = {784,70,10};
+			test = new net(temp);
+			test.learning_rate = i;
+			test.scanner = new Scanner(new File("train.csv"));
+			test.batch_size = 100;
+			test.scanner.nextLine();
+			test.auto = autoa;
+			if (visuala){
+				test.create_window();
+			}
+			
+			if (test.auto){
+				for (int a=0;a<420;a++){
+					if (a==414){
+						test.print = true;
+					}
+					test.learn_batch(test.batch_size);
+				}
+				System.out.println();
+				test.scanner.close();
+			}
+		}
+	
+		*/
 		int temp[] = {784,70,10};
 		test = new net(temp);
-		
 		test.scanner = new Scanner(new File("train.csv"));
 		test.batch_size = 100;
 		test.scanner.nextLine();
 		test.auto = autoa;
+		test.print = true;
 		if (visuala){
 			test.create_window();
 		}
 		
 		if (test.auto){
-			for (int i=0;i<419;i++){
-				System.out.print(i+ " ");
+			for (int a=0;a<420;a++){
+				System.out.print(a+" ");
 				test.learn_batch(test.batch_size);
 			}
+			System.out.println();
 			test.scanner.close();
 		}
 		
-		//test.export_net("TESTFOUR.txt");
+		//test.export_net("TESTFIVE.txt");
 		 
 		/*
 		int temp[] = {784,30,10};
