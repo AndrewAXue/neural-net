@@ -72,10 +72,8 @@ public class net{
 	
 	
 	//VISUALIZATION ASPECTS
-	// Control if VISUALIZATION appears
-	boolean visual = true;
 	// Buttons used in the VISUALIZATION
-	JButton train_batch_button,feed_button,train_all_batch_button;
+	JButton train_batch_button,feed_button,train_all_batch_button,feed_test;
 	// Sets limit for maximum number of nodes per layer displayed in visualization
 	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
@@ -372,6 +370,9 @@ public class net{
 		//Currently just filling portions of the window to be used in the future for stats and buttons
 		
 		JPanel buttons = new JPanel();
+		feed_test = new JButton("TEST!");
+		feed_test.addActionListener(new act());
+		buttons.add(feed_test);
 		feed_button = new JButton("FEED!");
 		buttons.add(feed_button);
 		train_batch_button = new JButton("TRAIN BATCH!");
@@ -443,6 +444,23 @@ public class net{
 					System.out.print(i+" ");
 					learn_batch(batch_size);
 				}
+			}
+			else if (e.getSource() == feed_test){
+				String line[] = scanner.nextLine().split(",");
+				double doublst[] = new double[784];
+				for (int i=0;i<784;i++){
+					doublst[i] = Double.parseDouble(line[i]);
+				}
+				feedforward(doublst);
+				window.repaint();
+				double result[] = getoutput();
+				int maxind=0;
+				for (int i=0;i<10;i++){
+					if (result[i]>result[maxind]){
+						maxind = i;
+					}
+				}
+				System.out.println("ANSWER "+maxind);
 			}
 			
 		}
