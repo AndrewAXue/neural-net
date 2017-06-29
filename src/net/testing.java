@@ -26,10 +26,10 @@ public class testing {
 		test.scanner = new Scanner(new File("mynums.csv"));
 		test.scanner.nextLine();
 		*/
-		/*
+		
 		for (double i=0.5;i<=5.0;i+=0.5){
 			System.out.println("Learning rate: "+i);
-			int temp[] = {784,70,10};
+			int temp[] = {784,80,10};
 			test = new net(temp);
 			test.learning_rate = i;
 			test.scanner = new Scanner(new File("train.csv"));
@@ -42,7 +42,7 @@ public class testing {
 			
 			if (test.auto){
 				for (int a=0;a<420;a++){
-					if (a==414){
+					if (a==410){
 						test.print = true;
 					}
 					test.learn_batch(test.batch_size);
@@ -51,9 +51,9 @@ public class testing {
 				test.scanner.close();
 			}
 		}
-		*/
 		
 		
+		/*
 		int temp[] = {784,70,10};
 		test = new net(temp);
 		test.scanner = new Scanner(new File("train.csv"));
@@ -76,38 +76,6 @@ public class testing {
 			System.out.println();
 			test.scanner.close();
 		}
-		
-		//test.export_net("TESTSEVEN.txt");
-		 
-		/*
-		int temp[] = {784,30,10};
-		test = new net(temp);
-		test.auto = autoa;
-		if (test.auto){
-			for (int i=0;i<10000;i++){
-				for (int k=0;k<50;k++){
-					test.feed();
-					test.backpropagate();
-				}
-				test.gradient_descent(50);
-			}
-		}
 		*/
-		
-		
-		
-		/*
-		for (int i=0;i<10000000;i++){
-			int x = xpick.nextInt(10);
-			double lst[] = {x};
-			double exp[] = {func(x)/10000.0};
-			test.feedforward(lst, exp);
-			test.backpropagate();
-			test.gradient_descent();
-			System.out.println(test.error[2][0]);
-		}
-		*/
-		
-		//test.netprint();
 	}
 }

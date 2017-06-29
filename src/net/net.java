@@ -31,8 +31,6 @@ import java.io.FileWriter;
 // figured if I made everything from scratch I would understand it better.
 
 //TODO
-//Softmax
-//Matrix matrix multiplication for batches
 //Improve UI more buttons
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
@@ -41,10 +39,14 @@ import java.io.FileWriter;
 //Alternatives to sigmoid functions (tanx function)
 
 //DONE!
+//Softmax
 //Outputting network weights + node properties to a seperate file for easy use in other programs
 //New constructor that builds neural net off of file (presumably trained one)
 //Handle layers with too many nodes
 //Cross entropy cost function
+
+//On Hold
+//Matrix matrix multiplication for batches
 
 //Known bugs:
 //Slow learning rate. Matrix matrix multiplication should alleviate this
@@ -62,13 +64,13 @@ public class net{
 	//HYPERPARAMETERS. These should be set when the net is initialized.
 	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
 	// are slower but steadier
-	double learning_rate = 3;
+	double learning_rate;
 	// Choosing which cost function to use (quadratic or cross-entropy at time of writing)
 	boolean quadratic = false;
 	// Stores the size of each batch for training
 	int batch_size;
 	// Whether to softmax the results
-	boolean softmax = true;
+	boolean softmax;
 	
 	
 	//VISUALIZATION ASPECTS
@@ -581,7 +583,7 @@ public class net{
 			}
 			write.append(" batch size "+batch_size);
 			if (softmax){
-				write.append("softmax");
+				write.append(" softmax");
 			}
 			write.append("\n");
 			for (int i=0;i<numlayer;i++){
@@ -840,7 +842,7 @@ public class net{
 			throw new NullPointerException("\nExpected array is empty! This is caused when backpropagate is called before the array of expected value is set");
 		}
 		for (int i=0;i<alllayersize[numlayer-1];i++){
-			if (quadratic) error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
+			if (quadratic||softmax) error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
 			else error[numlayer-1][i] = allnode[numlayer-1][i].avalue-expected[i];
 			allnode[numlayer-1][i].biasdev += error[numlayer-1][i];
 		}
