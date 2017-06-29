@@ -1,13 +1,11 @@
 package net;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 
 public class kaggletest {
-	
 	public static void main(String[] args) throws IOException {
 		FileWriter write = new FileWriter("answer.csv");
 		write.append("ImageID,Label\n");
@@ -33,7 +31,5 @@ public class kaggletest {
 		}
 		write.close();
 		scanner.close();
-		
 	}
-	
 }
