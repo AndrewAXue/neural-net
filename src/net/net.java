@@ -70,6 +70,8 @@ public class net{
 	
 	
 	//VISUALIZATION ASPECTS
+	//Window for VISUALIZATION
+	JFrame window = new JFrame();
 	// Control if VISUALIZATION appears
 	boolean visual = true;
 	// Buttons used in the VISUALIZATION
@@ -78,8 +80,7 @@ public class net{
 	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
 	boolean drawdev = false;
-	//Window for VISUALIZATION
-	JFrame window = new JFrame();
+	
 	//Size of VISUALIZATION
 	int visualdim = 900;
 	// Distance from the top of the JPanel to the first node in  each layer
@@ -616,6 +617,8 @@ public class net{
 		}
 	}
 	
+	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
+	// numbers classified correctly in the batch.
 	protected void learn_batch(int batch_size){
 		int corr=0;
 		for (int i=0;i<batch_size;i++){
@@ -639,6 +642,8 @@ public class net{
 			}
 			backpropagate();
 		}
+		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
+		// learn
 		gradient_descent(batch_size);
 		
 		System.out.println("CORRECT: "+corr);
