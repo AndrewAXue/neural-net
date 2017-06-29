@@ -35,10 +35,10 @@ import java.io.FileWriter;
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
 //Heatmap of different numbers
-//Support for different cost functions
 //Alternatives to sigmoid functions (tanx function)
 
 //DONE!
+//Support for different cost functions
 //Softmax
 //Outputting network weights + node properties to a seperate file for easy use in other programs
 //New constructor that builds neural net off of file (presumably trained one)
