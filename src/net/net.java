@@ -31,8 +31,6 @@ import java.io.FileWriter;
 // figured if I made everything from scratch I would understand it better.
 
 //TODO
-//Softmax
-//Matrix matrix multiplication for batches
 //Improve UI more buttons
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
@@ -41,10 +39,14 @@ import java.io.FileWriter;
 //Alternatives to sigmoid functions (tanx function)
 
 //DONE!
+//Softmax
 //Outputting network weights + node properties to a seperate file for easy use in other programs
 //New constructor that builds neural net off of file (presumably trained one)
 //Handle layers with too many nodes
 //Cross entropy cost function
+
+//On Hold
+//Matrix matrix multiplication for batches
 
 //Known bugs:
 //Slow learning rate. Matrix matrix multiplication should alleviate this
@@ -55,18 +57,20 @@ import java.io.FileWriter;
 
 
 public class net{
-	
+	boolean print = false;
 	//Scanner for CSV file
 	Scanner scanner;
 	
-	//HYPERPARAMETERS
+	//HYPERPARAMETERS. These should be set when the net is initialized.
 	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
 	// are slower but steadier
-	double learning_rate = 0.5;
-	// Choosing which cost function to use
+	double learning_rate;
+	// Choosing which cost function to use (quadratic or cross-entropy at time of writing)
 	boolean quadratic = false;
 	// Stores the size of each batch for training
 	int batch_size;
+	// Whether to softmax the results
+	boolean softmax;
 	
 	
 	//VISUALIZATION ASPECTS
@@ -74,8 +78,10 @@ public class net{
 	JFrame window = new JFrame();
 	// Control if VISUALIZATION appears
 	boolean visual = true;
+  
+  
 	// Buttons used in the VISUALIZATION
-	JButton train_batch_button,feed_button;
+	JButton train_batch_button,feed_button,train_all_batch_button,feed_test;
 	// Sets limit for maximum number of nodes per layer displayed in visualization
 	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
@@ -120,7 +126,8 @@ public class net{
 	
 	// derivative of the sigmoid function used in backpropagation
 	double sigmoidprime(double x){
-		return (Math.exp(-x))/(Math.pow(1+Math.exp(-x), 2));
+		double sig = sigmoid(x);
+		return sig*(1-sig);
 	}
 		
 	// A weight in the neural net. This class will be stored in a 3d array of weights, where the first indice
@@ -138,6 +145,8 @@ public class net{
 	protected class nodeclass{
 		double bias = 0;
 		double biasdev = 0;
+		double zvaluematrix[];
+		double avaluematrix[];
 		//Weighted sum of all the inputed + bias of the node
 		double zvalue = 0;
 		//avalue is the output of the node and by definition avalue = sigmoid(zvalue)
@@ -259,6 +268,7 @@ public class net{
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	net(int arr[]){
+		
 		alllayersize = arr;
 		numlayer = arr.length;
 		// Creating an error matrix
@@ -369,12 +379,17 @@ public class net{
 		//Currently just filling portions of the window to be used in the future for stats and buttons
 		
 		JPanel buttons = new JPanel();
+		feed_test = new JButton("TEST!");
+		feed_test.addActionListener(new act());
+		buttons.add(feed_test);
 		feed_button = new JButton("FEED!");
 		buttons.add(feed_button);
 		train_batch_button = new JButton("TRAIN BATCH!");
 		train_batch_button.addActionListener(new act());
 		buttons.add(train_batch_button);
-		buttons.add(new JButton("TRAIN ALL BATCHES!"));
+		train_all_batch_button =  new JButton("TRAIN ALL BATCHES!");
+		train_all_batch_button.addActionListener(new act());
+		buttons.add(train_all_batch_button);
 		buttons.setBackground(Color.PINK);
 		
 		cons.fill = GridBagConstraints.BOTH;
@@ -432,6 +447,29 @@ public class net{
 		public void actionPerformed(ActionEvent e) {
 			if (e.getSource() == train_batch_button){
 				learn_batch(batch_size);
+			}
+			else if (e.getSource() == train_all_batch_button){
+				for (int i=0;i<100;i++){
+					System.out.print(i+" ");
+					learn_batch(batch_size);
+				}
+			}
+			else if (e.getSource() == feed_test){
+				String line[] = scanner.nextLine().split(",");
+				double doublst[] = new double[784];
+				for (int i=0;i<784;i++){
+					doublst[i] = Double.parseDouble(line[i]);
+				}
+				feedforward(doublst);
+				window.repaint();
+				double result[] = getoutput();
+				int maxind=0;
+				for (int i=0;i<10;i++){
+					if (result[i]>result[maxind]){
+						maxind = i;
+					}
+				}
+				System.out.println("ANSWER "+maxind);
 			}
 			
 		}
@@ -532,7 +570,27 @@ public class net{
 	protected void export_net(String file){
 		try{
 			FileWriter write = new FileWriter(file);
-			write.append(numlayer+" layers\n");
+			/*
+			 * double learning_rate = 1.5;
+				// Choosing which cost function to use
+				boolean quadratic = false;
+				// Stores the size of each batch for training
+				int batch_size;
+				// Whether to softmax the results
+				boolean softmax = false;
+			 */
+			write.append(numlayer+" layers "+" learning rate: "+learning_rate);
+			if (quadratic){
+				write.append(" quadratic ");
+			}
+			else{
+				write.append(" cross-entropy ");
+			}
+			write.append(" batch size "+batch_size);
+			if (softmax){
+				write.append(" softmax");
+			}
+			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
 			}
@@ -645,7 +703,7 @@ public class net{
 		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
 		// learn
 		gradient_descent(batch_size);
-		
+		if (print)
 		System.out.println("CORRECT: "+corr);
 	}
 	
@@ -726,6 +784,16 @@ public class net{
 					allnode[i+1][k].avalue = sigmoid(allnode[i+1][k].zvalue);
 				}
 			}
+			if (softmax){
+				double sum = 0;
+				for (int i=0;i<alllayersize[numlayer-1];i++){
+					sum+=Math.exp(allnode[numlayer-1][i].zvalue);
+				
+				}
+				for (int i=0;i<alllayersize[numlayer-1];i++){
+					allnode[numlayer-1][i].avalue = Math.exp(allnode[numlayer-1][i].zvalue)/sum;
+				}
+			}
 		}
 		/*
 		System.out.print("Expected: "+expected[0]);
@@ -733,8 +801,32 @@ public class net{
 		System.out.println();
 		System.out.println("Cost: "+Math.pow((expected[0]-getoutput()[0]),2)/2);
 		*/
-		
 	}
+	
+	//Work in progress matrix matrix multiplication. The function would not be much quicker as more advanced
+	//linear algebra theorums would have to be used to really see an impact.
+	/*
+	protected void feed_batch(double [][] data){
+		if (data[0].length!=alllayersize[0]){
+			System.out.println("ERROR: Input layer size different then number of inputs");
+		}
+		else{
+			for (int i=0;i<alllayersize[0];i++){
+				allnode[0][i].avaluematrix = allnode[0][i].zvaluematrix = new double[data.length];
+				for (int k=0;k<data.length;k++){
+					allnode[0][i].avaluematrix[k] = allnode[0][i].zvaluematrix[k] = data[k][i];
+				}
+			}
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<allnode[i][0].avaluematrix.length;k++){
+					for (int a=0;a<alllayersize[i];a++){
+						 
+					}
+				}
+			}
+		}
+	}
+	*/
 	
 	//Returns the output layer of the net. Should be called after a feedforward is called.
 	protected double[] getoutput(){
@@ -759,31 +851,33 @@ public class net{
 			throw new NullPointerException("\nExpected array is empty! This is caused when backpropagate is called before the array of expected value is set");
 		}
 		for (int i=0;i<alllayersize[numlayer-1];i++){
-			if (quadratic) error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
+			if (quadratic||softmax) error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
 			else error[numlayer-1][i] = allnode[numlayer-1][i].avalue-expected[i];
 			allnode[numlayer-1][i].biasdev += error[numlayer-1][i];
 		}
 		expected = null;
 		//BP2
+		
 		for (int i=numlayer-2;i>=0;i--){
 			for (int k=0;k<alllayersize[i];k++){
 				double newerror=0;
+				nodeclass active = allnode[i][k];
+				double sigmoidprime = sigmoidprime(active.zvalue);
+				
 				for (int a=0;a<alllayersize[i+1];a++){
-					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime(allnode[i][k].zvalue);
+					
+					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime;
+					//BP4
+					allweight[i][a][k].weightdev += active.avalue*error[i+1][a];
+					
 				}
+				
 				error[i][k] = newerror;
 				//BP3
-				allnode[i][k].biasdev += error[i][k];
+				active.biasdev += newerror;
 			}
 		}
-		//BP4
-		for (int i=0;i<numlayer-1;i++){
-			for (int k=0;k<alllayersize[i];k++){
-				for (int a=0;a<alllayersize[i+1];a++){
-					allweight[i][a][k].weightdev += allnode[i][k].avalue*error[i+1][a];
-				}
-			}
-		}
+		
 		window.repaint();
 	}
 	
@@ -804,6 +898,7 @@ public class net{
 				}
 			}
 		}
+		//Resetting partial derivatives
 		cleardev();
 		window.repaint();
 	}

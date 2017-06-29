@@ -26,12 +26,9 @@ public class drawnum {
 		// Initializes a scanner to take in data from the csv file
 		//scanner = new Scanner(new File("train.csv"));
 		//scanner = new Scanner(new File("mynums.csv"));
-		test = new net("TESTTWO.txt");
 		scanner = new Scanner(new File("test.csv"));
         scanner.useDelimiter(",");
         scanner.nextLine();
-        String[] lst = scanner.nextLine().split(",");
-        System.out.println(lst.length);
         // Transforms the values on the csv from strings to ints
 		new drawnum().go();
 	}
@@ -70,19 +67,8 @@ public class drawnum {
 				double feed[] = new double[784];
 				String[] lst = scanner.nextLine().split(",");
 				for (int a=0;a<784;a++){
-	        		doublst[a] = Integer.parseInt(lst[a+1]);
-	        		feed[a] = doublst[a]/255.0;
+	        		doublst[a] = Integer.parseInt(lst[a]);
 	        	}
-				test.feedforward(feed);
-				double result[] = test.getoutput();
-				int ans = 0;
-				for (int i=0;i<10;i++){
-					System.out.println(result[i]);
-					if (result[i]>result[ans]){
-						ans = i;
-					}
-				}
-				System.out.println(ans+"\n");
 				window.repaint();
 			}
 		}
