@@ -66,7 +66,7 @@ public class net{
 	// are slower but steadier
 	double learning_rate;
 	// Choosing which cost function to use (quadratic or cross-entropy at time of writing)
-	boolean quadratic = false;
+	boolean quadratic;
 	// Stores the size of each batch for training
 	int batch_size;
 	// Whether to softmax the results
@@ -583,13 +583,13 @@ public class net{
 			if (quadratic){
 				write.append(" quadratic ");
 			}
+			else if (softmax){
+				write.append(" softmax log-likelihood ");
+			}
 			else{
 				write.append(" cross-entropy ");
 			}
 			write.append(" batch size "+batch_size);
-			if (softmax){
-				write.append(" softmax");
-			}
 			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
@@ -632,14 +632,6 @@ public class net{
 	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	public void feed_and_set_expected(){
-		//double rand = 0.5;
-		/*
-		double rand = weightchoose.nextDouble();
-		//equation is 3x^2-5x+6
-		double lst[] = {rand,rand,rand};
-		double exp[] = {0.5,0.5};
-		feedforward(lst,exp);
-		*/
 		String[] lst = scanner.nextLine().split(",");
 		int correct = Integer.parseInt(lst[0]);
 		double ans[] = {0,0,0,0,0,0,0,0,0,0};
@@ -649,14 +641,7 @@ public class net{
     		doublst[a] = Double.parseDouble(lst[a+1])/255;
     	}
 		feedforward(doublst);
-		set_expected(ans);
-	}
-	 
-	
-	// Used in combination with feed for training only. When doing testing questions, this does not need
-	// to be called.
-	void set_expected(double[] tempexpected){
-		expected = tempexpected;
+		expected = ans;
 	}
 	
 	// Clears all the partial derivatives. Should be called after gradient descent
@@ -682,6 +667,7 @@ public class net{
 		for (int i=0;i<batch_size;i++){
 			
 			feed_and_set_expected();
+			
 			int maxind=0;
 			for (int z=0;z<10;z++){
 				if (allnode[2][maxind].avalue<allnode[2][z].avalue){
@@ -698,6 +684,7 @@ public class net{
 			if (choice==maxind){
 				corr++;
 			}
+			
 			backpropagate();
 		}
 		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
@@ -777,21 +764,24 @@ public class net{
 			for (int i=0;i<allweight.length;i++){
 				for (int k=0;k<allweight[i].length;k++){
 					double newz = 0;
+					nodeclass active = allnode[i+1][k];
 					for (int a=0;a<allweight[i][0].length;a++){
 						newz+=allnode[i][a].avalue*allweight[i][k][a].weight;
 					}
-					allnode[i+1][k].zvalue = newz+allnode[i+1][k].bias;
-					allnode[i+1][k].avalue = sigmoid(allnode[i+1][k].zvalue);
+					active.zvalue = newz+active.bias;
+					active.avalue = sigmoid(active.zvalue);
 				}
 			}
 			if (softmax){
 				double sum = 0;
+				double expvalues[] =  new double[alllayersize[numlayer-1]];
 				for (int i=0;i<alllayersize[numlayer-1];i++){
-					sum+=Math.exp(allnode[numlayer-1][i].zvalue);
+					expvalues[i] = Math.exp(allnode[numlayer-1][i].zvalue);
+					sum+=expvalues[i];
 				
 				}
 				for (int i=0;i<alllayersize[numlayer-1];i++){
-					allnode[numlayer-1][i].avalue = Math.exp(allnode[numlayer-1][i].zvalue)/sum;
+					allnode[numlayer-1][i].avalue = expvalues[i]/sum;
 				}
 			}
 		}
@@ -851,8 +841,9 @@ public class net{
 			throw new NullPointerException("\nExpected array is empty! This is caused when backpropagate is called before the array of expected value is set");
 		}
 		for (int i=0;i<alllayersize[numlayer-1];i++){
-			if (quadratic||softmax) error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
-			else error[numlayer-1][i] = allnode[numlayer-1][i].avalue-expected[i];
+			if (quadratic) error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
+			//cross entropy and log-likelihood has the same derivative with respect to avalue
+			else if (softmax||!quadratic) error[numlayer-1][i] = allnode[numlayer-1][i].avalue-expected[i];
 			allnode[numlayer-1][i].biasdev += error[numlayer-1][i];
 		}
 		expected = null;
@@ -888,6 +879,7 @@ public class net{
 		for (int i=1;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
 				allnode[i][k].bias-=learning_rate/(double)batch_size*allnode[i][k].biasdev;
+				allnode[i][k].biasdev = 0;
 			}
 		}
 		//Updating weights
@@ -895,11 +887,13 @@ public class net{
 			for (int k=0;k<allweight[i].length;k++){
 				for (int a=0;a<allweight[i][0].length;a++){
 					allweight[i][k][a].weight-=learning_rate/(double)batch_size*allweight[i][k][a].weightdev;
+					allweight[i][k][a].weightdev = 0;
 				}
 			}
 		}
 		//Resetting partial derivatives
-		cleardev();
+		//Currently being done in line
+		//cleardev();
 		window.repaint();
 	}
 }
