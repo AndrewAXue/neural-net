@@ -31,11 +31,14 @@ import java.io.FileWriter;
 // figured if I made everything from scratch I would understand it better.
 
 //TODO
+//Using validation data to prevent overfitting
+//Graphing performance over epochs
 //Improve UI more buttons
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
 //Heatmap of different numbers
 //Alternatives to sigmoid functions (tanx function)
+//More more cost functions
 
 //DONE!
 //Support for different cost functions
@@ -638,7 +641,7 @@ public class net{
 		ans[correct] = 1;
     	double doublst[] = new double[784];
     	for (int a=0;a<784;a++){
-    		doublst[a] = Double.parseDouble(lst[a+1])/255;
+    		doublst[a] = Double.parseDouble(lst[a+1])/255.0;
     	}
 		feedforward(doublst);
 		expected = ans;

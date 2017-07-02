@@ -64,7 +64,7 @@ public class testing {
 		if (test.auto){
 			for (int a=0;a<420;a++){
 				System.out.print(a+" ");
-				test.learn_batch(test.batch_size);
+				 test.learn_batch(test.batch_size);
 			}
 			System.out.println();
 			test.scanner.close();
