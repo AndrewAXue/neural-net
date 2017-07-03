@@ -12,6 +12,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 import javax.swing.ImageIcon;
@@ -20,6 +21,8 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.Timer;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -31,33 +34,38 @@ import java.io.FileWriter;
 // figured if I made everything from scratch I would understand it better.
 
 //TODO
+//Using validation data to prevent overfitting
 //Improve UI more buttons
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
 //Heatmap of different numbers
 //Alternatives to sigmoid functions (tanx function)
+//More more cost functions
 
 //DONE!
+//Graphing performance over epochs
+//Ability to switch between graph and net views
 //Support for different cost functions
 //Softmax
 //Outputting network weights + node properties to a seperate file for easy use in other programs
 //New constructor that builds neural net off of file (presumably trained one)
 //Handle layers with too many nodes
 //Cross entropy cost function
+//Training batches, and all batches buttons work
 
 //On Hold
 //Matrix matrix multiplication for batches
 
 //Known bugs:
 //Slow learning rate. Matrix matrix multiplication should alleviate this
-//Relatively low accuracy 85-90 after trained. Cross entropy should help, maybe playing with learning rates more
-//Backprop and possibly gradient descent are exceptionally slow. Backprop should be as computationally expensive
-//	as feedforward, which is significantly quicker.
-//Digits inputted in digitrecognize, when drawn in drawnum are slightly off center.
 
 
 public class net{
+	Timer graph_draw = new Timer(0, new act());
 	boolean print = false;
+	int result = -1;
+	ArrayList<Integer> results = new ArrayList<Integer>();
+	boolean graphing = false;
 	//Scanner for CSV file
 	Scanner scanner;
 	
@@ -81,7 +89,7 @@ public class net{
   
   
 	// Buttons used in the VISUALIZATION
-	JButton train_batch_button,feed_button,train_all_batch_button,feed_test;
+	JButton graph_button,train_batch_button,feed_button,train_all_batch_button,train_one_button;
 	// Sets limit for maximum number of nodes per layer displayed in visualization
 	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
@@ -349,8 +357,8 @@ public class net{
 	
 	protected void create_window(){
 		//Set characteristics of window
+		window = new JFrame("VISUALIZATION");
 		window.setSize(1000, 1000);
-		window.setTitle("VISUALIZATION");
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setResizable(false);
 		window.setIconImage(new ImageIcon("neural.jpg").getImage());
@@ -379,11 +387,14 @@ public class net{
 		//Currently just filling portions of the window to be used in the future for stats and buttons
 		
 		JPanel buttons = new JPanel();
-		feed_test = new JButton("TEST!");
-		feed_test.addActionListener(new act());
-		buttons.add(feed_test);
+		graph_button = new JButton("GRAPH!");
+		buttons.add(graph_button);
+		graph_button.addActionListener(new act());
 		feed_button = new JButton("FEED!");
 		buttons.add(feed_button);
+		train_one_button = new JButton("TRAIN ONE!");
+		train_one_button.addActionListener(new act());
+		buttons.add(train_one_button);
 		train_batch_button = new JButton("TRAIN BATCH!");
 		train_batch_button.addActionListener(new act());
 		buttons.add(train_batch_button);
@@ -441,44 +452,80 @@ public class net{
 		window.setVisible(true);
 	}
 	
+	
+	protected void graph_results(int num_epoch){
+		/*
+		graph = new JFrame("More VISUALIZATION");
+		//Set characteristics of window
+		graph.setSize(1000, 1000);
+		graph.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		graph.setResizable(false);
+		graph.setIconImage(new ImageIcon("neural.jpg").getImage());
+		
+		
+		graph.add(new graph_VISUALIZATION(100));
+		graph.setVisible(true);
+		*/
+		graphing = true;
+		window.repaint();
+		for (int i=0;i<num_epoch;i++){
+			results.add(learn_batch(batch_size));
+		}
+	}
+	
+	
+	
 	public class act implements ActionListener{
-
-		@Override
+		
 		public void actionPerformed(ActionEvent e) {
-			if (e.getSource() == train_batch_button){
-				learn_batch(batch_size);
+			if (e.getSource() == train_one_button){
+				feed_and_set_expected(true);
+			}
+			else if (e.getSource() == train_batch_button){
+				int numcorrect = learn_batch(batch_size);
+				if (numcorrect==-1){
+					train_batch_button.setEnabled(false);
+					train_all_batch_button.setEnabled(false);
+					train_one_button.setEnabled(false);
+					System.out.println("OUT OF DATA!");
+					return;
+				}
+				System.out.println(numcorrect+" correct out of "+batch_size);
+				results.add(numcorrect);
+				window.repaint();
 			}
 			else if (e.getSource() == train_all_batch_button){
-				for (int i=0;i<100;i++){
-					System.out.print(i+" ");
-					learn_batch(batch_size);
-				}
+				graph_draw.start();
 			}
-			else if (e.getSource() == feed_test){
-				String line[] = scanner.nextLine().split(",");
-				double doublst[] = new double[784];
-				for (int i=0;i<784;i++){
-					doublst[i] = Double.parseDouble(line[i]);
+			else if (e.getSource() == graph_button){
+				//graph_results(100);
+				graphing = !graphing;
+				if (graphing){
+					graph_button.setText("NET!");
 				}
-				feedforward(doublst);
+				else{
+					graph_button.setText("GRAPH!");
+				}
 				window.repaint();
-				double result[] = getoutput();
-				int maxind=0;
-				for (int i=0;i<10;i++){
-					if (result[i]>result[maxind]){
-						maxind = i;
-					}
-				}
-				System.out.println("ANSWER "+maxind);
 			}
-			
+			else if (e.getSource() == graph_draw){
+				int numcorrect = learn_batch(batch_size);
+				if (numcorrect==-1){
+					train_batch_button.setEnabled(false);
+					train_all_batch_button.setEnabled(false);
+					train_one_button.setEnabled(false);
+					System.out.println("OUT OF DATA!");
+					graph_draw.stop();
+					return;
+				}
+				System.out.println(numcorrect+" correct out of "+batch_size);
+				results.add(numcorrect);
+			}
 		}
-		
 	}
 	
 	// Graphics aspect of the framework
 	private class VISUALIZATION extends JComponent {
-		
 		VISUALIZATION() {
             setPreferredSize(new Dimension(visualdim, visualdim));
         }
@@ -488,68 +535,132 @@ public class net{
 			Graphics2D grap = (Graphics2D) g; 	
 			grap.setColor(Color.WHITE);
 			grap.setFont(new Font("Arial Black", Font.BOLD, 15));
-			
-			//Painting the weights and lines between nodes
-			for (int i=0;i<allweight.length;i++){
-				for (int k=0;k<allweight[i][0].length;k++){
-					nodeclass active = allnode[i][k];
-					if (active.drawnode){
-						for (int a=0;a<allweight[i].length;a++){
-							if (allnode[i+1][a].drawnode){
-								grap.setColor(active.color);
-								int x1 = active.xpos+sizenode/2;
-								int y1 = active.ypos+sizenode/2;
-								int x2 = allnode[i+1][a].xpos+sizenode/2;
-								int y2 = allnode[i+1][a].ypos+sizenode/2;
-								//Creating lines between nodes where there are weights
-								if (x1>30&&x2>30){
-									grap.drawLine(x1,y1,x2,y2);
-									if (allnode[i][k].drawweight){								
-										double slope = (double)(y1-y2)/(double)(x1-x2);
-										double yinter = (y1-slope*x1);
-										double newx = x1+(x2-x1)/2-55;
-										// Writing properties of the weights approximately halfway between the layers
-										grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
-										if (drawdev)grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
-									}	
+			if (!graphing){
+				//Painting the weights and lines between nodes
+				for (int i=0;i<allweight.length;i++){
+					for (int k=0;k<allweight[i][0].length;k++){
+						nodeclass active = allnode[i][k];
+						if (active.drawnode){
+							for (int a=0;a<allweight[i].length;a++){
+								if (allnode[i+1][a].drawnode){
+									grap.setColor(active.color);
+									int x1 = active.xpos+sizenode/2;
+									int y1 = active.ypos+sizenode/2;
+									int x2 = allnode[i+1][a].xpos+sizenode/2;
+									int y2 = allnode[i+1][a].ypos+sizenode/2;
+									//Creating lines between nodes where there are weights
+									if (x1>30&&x2>30){
+										grap.drawLine(x1,y1,x2,y2);
+										if (allnode[i][k].drawweight){								
+											double slope = (double)(y1-y2)/(double)(x1-x2);
+											double yinter = (y1-slope*x1);
+											double newx = x1+(x2-x1)/2-55;
+											// Writing properties of the weights approximately halfway between the layers
+											grap.drawString("Weight: "+Math.round(1000000.0*allweight[i][a][k].weight)/1000000.0, (int)newx, (int)((newx)*slope+yinter));
+											if (drawdev)grap.drawString("Weightdev: "+Math.round(1000000.0*allweight[i][a][k].weightdev)/1000000.0, (int)newx, (int)((newx)*slope+yinter+20));
+										}	
+									}
 								}
 							}
 						}
+						
 					}
 					
 				}
-				
-			}
-			//Drawing nodes
-			for (int i=0;i<alllayersize.length;i++){
-				for (int k=0;k<alllayersize[i];k++){
-					nodeclass active = allnode[i][k];
-					if (active.drawnode){
-						grap.setColor(active.color);
-						//Drawing Bias and Bias partial derivitive above node
-						if (drawdev){
-							grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos-20);
-							grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, active.ypos);	
-							//Writing down characteristics of the node including the value pre and post sigmoid function and error
-							if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
-							else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);	
-							grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 40+active.ypos+sizenode);
+				//Drawing nodes
+				for (int i=0;i<alllayersize.length;i++){
+					for (int k=0;k<alllayersize[i];k++){
+						nodeclass active = allnode[i][k];
+						if (active.drawnode){
+							grap.setColor(active.color);
+							//Drawing Bias and Bias partial derivitive above node
+							if (drawdev){
+								grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos-20);
+								grap.drawString("Biasdev: "+Math.round(1000000.0*active.biasdev)/1000000.0, active.xpos, active.ypos);	
+								//Writing down characteristics of the node including the value pre and post sigmoid function and error
+								if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 20+active.ypos+sizenode);
+								else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 20+active.ypos+sizenode);	
+								grap.drawString("Error: "+Math.round(1000000.0*error[i][k])/1000000.0, active.xpos, 40+active.ypos+sizenode);
+							}
+							else{
+								grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos);
+								if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 15+active.ypos+sizenode);
+								else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 15+active.ypos+sizenode);	
+							}
+								
+							//Drawing the actual node
+							grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
 						}
-						else{
-							grap.drawString("Bias: "+Math.round(1000000.0*active.getbias())/1000000.0, active.xpos, active.ypos);
-							if (i!=0) grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0+"("+Math.round(1000000.0*active.avalue)/1000000.0+")", active.xpos, 15+active.ypos+sizenode);
-							else grap.drawString("Value: "+Math.round(1000000.0*active.zvalue)/1000000.0, active.xpos, 15+active.ypos+sizenode);	
-						}
-							
-						//Drawing the actual node
-						grap.fillOval(active.xpos, active.ypos, sizenode, sizenode);
+						
+						
 					}
-					
-					
+				}
+			}
+			else{
+				grap.drawLine(distfromside, visualdim-distfromtop, visualdim-distfromside, visualdim-distfromtop);
+				grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
+				grap.drawString("Epoch", visualdim-distfromside-50, visualdim-distfromtop);
+				grap.drawString("0", distfromside, visualdim-distfromtop+20);
+				grap.drawString(results.size()/4+"", distfromside+200, visualdim-distfromtop+20);
+				grap.drawString(2*results.size()/4+"", distfromside+400, visualdim-distfromtop+20);
+				grap.drawString(3*results.size()/4+"", distfromside+600, visualdim-distfromtop+20);
+				grap.drawString(results.size()+"", distfromside+800, visualdim-distfromtop+20);
+				grap.drawString("Accuracy (%)", distfromside, visualdim-distfromtop-800+5);
+				grap.drawString("0", distfromside-15, visualdim-distfromtop+5);
+				grap.drawString("25", distfromside-25, visualdim-distfromtop-200+5);
+				grap.drawString("50", distfromside-25, visualdim-distfromtop-400+5);
+				grap.drawString("75", distfromside-25, visualdim-distfromtop-600+5);
+				grap.drawString("100", distfromside-35, visualdim-distfromtop-800+5);
+				double xratio = 800/(double)results.size();
+				double yratio = 800/(double)batch_size;
+				if (results.size()!=0&&results.get(results.size()-1)==-1){
+					results.remove(results.size()-1);
+				}
+				for (int i=1;i<results.size();i++){
+					//grap.fillRect(distfromside+(int)(i*xratio),visualdim-distfromtop-(int) (results[i]*yratio), 1, 1);
+					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(results.get(i-1)*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (results.get(i)*yratio));
+					//grap.drawLine(distfromside+(int)((i-1)*(double)((visualdim-distfromside-distfromside)/results.length)), visualdim-distfromtop-(int)((visualdim-distfromtop-distfromtop)*((double)results[i-1]/(double)batch_size)), distfromside+(int)((i)*(double)((visualdim-distfromside-distfromside)/results.length)), visualdim-distfromtop-(int)((visualdim-distfromtop-distfromtop)*((double)results[i]/(double)batch_size)));
 				}
 			}
 		}
 	}
+	/*
+	private class graph_VISUALIZATION extends JComponent {
+		int num_epoch;
+		graph_VISUALIZATION(int temp_num_epoch) {
+            setPreferredSize(new Dimension(visualdim, visualdim));
+            num_epoch = temp_num_epoch;
+        }
+		
+		public void paintComponent(Graphics g){
+			super.paintComponents(g);
+			Graphics2D grap = (Graphics2D) g; 	
+			grap.setColor(Color.BLACK);
+			grap.fillRect(0, 0, 1000, 1000);
+			grap.setColor(Color.WHITE);
+			grap.setFont(new Font("Arial Black", Font.BOLD, 15));
+			grap.drawLine(distfromside, visualdim-distfromtop, visualdim-distfromside, visualdim-distfromtop);
+			grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
+			if (result!=-1){
+				grap.drawLine(0, 300, result, 300);
+			}
+			
+			for (int i=0;i<num_epoch;i++){
+				int numcorrect = learn_batch(batch_size);
+				if (numcorrect==-1){
+					train_batch_button.setEnabled(false);
+					train_all_batch_button.setEnabled(false);
+					train_one_button.setEnabled(false);
+					
+					System.out.println("OUT OF DATA!");
+					return;
+				}
+				System.out.println(numcorrect);
+			}
+			
+		}
+	}
+	*/
 	
 	// Prints out the weights and biases of all the nodes of the net
 	void netprint(){
@@ -631,17 +742,33 @@ public class net{
 	}
 	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
-	public void feed_and_set_expected(){
+	// and returns a "1" if the actual and expected are the same. Can also print the expected and actual
+	// values.
+	public int feed_and_set_expected(boolean printresults){
+		if (!scanner.hasNextLine())return -1;
 		String[] lst = scanner.nextLine().split(",");
 		int correct = Integer.parseInt(lst[0]);
 		double ans[] = {0,0,0,0,0,0,0,0,0,0};
 		ans[correct] = 1;
     	double doublst[] = new double[784];
     	for (int a=0;a<784;a++){
-    		doublst[a] = Double.parseDouble(lst[a+1])/255;
+    		doublst[a] = Double.parseDouble(lst[a+1])/255.0;
     	}
 		feedforward(doublst);
 		expected = ans;
+		
+		double result[] = getoutput();
+		int maxind=0;
+		for (int i=0;i<10;i++){
+			if (result[i]>result[maxind]){
+				maxind = i;
+			}
+		}
+		if (printresults){
+			System.out.println("Expected/Correct: "+correct+" Actual: "+maxind);
+		}
+		if (maxind==correct)return 1;
+		return 0;
 	}
 	
 	// Clears all the partial derivatives. Should be called after gradient descent
@@ -662,76 +789,23 @@ public class net{
 	
 	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
 	// numbers classified correctly in the batch.
-	protected void learn_batch(int batch_size){
+	protected int learn_batch(int batch_size){
 		int corr=0;
 		for (int i=0;i<batch_size;i++){
-			
-			feed_and_set_expected();
-			
-			int maxind=0;
-			for (int z=0;z<10;z++){
-				if (allnode[2][maxind].avalue<allnode[2][z].avalue){
-					maxind=z;
-				}
-			}
-			int choice=0;
-			for (int a=0;a<10;a++){
-				if (expected[a]==1){
-					choice=a;
-					break;
-				}
-			}
-			if (choice==maxind){
-				corr++;
-			}
-			
+			int result = feed_and_set_expected(false);
+			if (result==-1)return -1;
+			corr+=result;
 			backpropagate();
 		}
 		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
 		// learn
 		gradient_descent(batch_size);
-		if (print)
-		System.out.println("CORRECT: "+corr);
+		return corr;
 	}
 	
 	private class mouseevent implements MouseListener{
 		// Toggles whether the weights of a certain node should be shown. Done by clicking the node.
 		public void mouseClicked(MouseEvent e) {
-			if (auto){
-				System.out.println("Automatic testing is running");
-				
-			}
-			//System.out.println(e.getPoint());
-			if (e.isControlDown()){
-				cleardev();
-				window.repaint();
-			}
-			if (e.getX()<50){
-				/*double lst[] = new double[alllayersize[0]];
-				for (int i=0;i<lst.length;i++){
-					lst[i] = 0;
-				}
-				double exp[] = new double[alllayersize[numlayer-1]];
-				for (int i=0;i<exp.length;i++){
-					exp[i] = 5;
-				}
-				System.out.println("called");
-				*/
-				feed_and_set_expected();
-				window.repaint();
-			}
-			if (e.getY()<50){
-				backpropagate();
-				window.repaint();
-			}
-			if (e.getX()>850){
-				gradient_descent(1);
-				window.repaint();
-			}
-			if (e.getY()>850){
-				learn_batch(100);
-				window.repaint();
-			}
 			boolean done = false;
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
