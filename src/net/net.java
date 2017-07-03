@@ -12,6 +12,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 import javax.swing.ImageIcon;
@@ -20,6 +21,8 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.Timer;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -32,7 +35,6 @@ import java.io.FileWriter;
 
 //TODO
 //Using validation data to prevent overfitting
-//Graphing performance over epochs
 //Improve UI more buttons
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
@@ -41,6 +43,8 @@ import java.io.FileWriter;
 //More more cost functions
 
 //DONE!
+//Graphing performance over epochs
+//Ability to switch between graph and net views
 //Support for different cost functions
 //Softmax
 //Outputting network weights + node properties to a seperate file for easy use in other programs
@@ -54,16 +58,13 @@ import java.io.FileWriter;
 
 //Known bugs:
 //Slow learning rate. Matrix matrix multiplication should alleviate this
-//Relatively low accuracy 85-90 after trained. Cross entropy should help, maybe playing with learning rates more
-//Backprop and possibly gradient descent are exceptionally slow. Backprop should be as computationally expensive
-//	as feedforward, which is significantly quicker.
-//Digits inputted in digitrecognize, when drawn in drawnum are slightly off center.
 
 
 public class net{
+	Timer graph_draw = new Timer(0, new act());
 	boolean print = false;
 	int result = -1;
-	int results[];
+	ArrayList<Integer> results = new ArrayList<Integer>();
 	boolean graphing = false;
 	//Scanner for CSV file
 	Scanner scanner;
@@ -451,6 +452,7 @@ public class net{
 		window.setVisible(true);
 	}
 	
+	
 	protected void graph_results(int num_epoch){
 		/*
 		graph = new JFrame("More VISUALIZATION");
@@ -466,18 +468,15 @@ public class net{
 		*/
 		graphing = true;
 		window.repaint();
-		results = new int[num_epoch];
 		for (int i=0;i<num_epoch;i++){
-			results[i] = -1;
-		}
-		for (int i=0;i<num_epoch;i++){
-			results[i] = learn_batch(batch_size);
-			window.repaint();
+			results.add(learn_batch(batch_size));
 		}
 	}
 	
 	
+	
 	public class act implements ActionListener{
+		
 		public void actionPerformed(ActionEvent e) {
 			if (e.getSource() == train_one_button){
 				feed_and_set_expected(true);
@@ -492,22 +491,35 @@ public class net{
 					return;
 				}
 				System.out.println(numcorrect+" correct out of "+batch_size);
+				results.add(numcorrect);
+				window.repaint();
 			}
 			else if (e.getSource() == train_all_batch_button){
-				while(true){
-					int numcorrect = learn_batch(batch_size);
-					if (numcorrect==-1){
-						train_batch_button.setEnabled(false);
-						train_all_batch_button.setEnabled(false);
-						train_one_button.setEnabled(false);
-						System.out.println("OUT OF DATA!");
-						return;
-					}
-					System.out.println(learn_batch(batch_size)+" correct out of "+batch_size);
-				}
+				graph_draw.start();
 			}
 			else if (e.getSource() == graph_button){
-				graph_results(100);
+				//graph_results(100);
+				graphing = !graphing;
+				if (graphing){
+					graph_button.setText("NET!");
+				}
+				else{
+					graph_button.setText("GRAPH!");
+				}
+				window.repaint();
+			}
+			else if (e.getSource() == graph_draw){
+				int numcorrect = learn_batch(batch_size);
+				if (numcorrect==-1){
+					train_batch_button.setEnabled(false);
+					train_all_batch_button.setEnabled(false);
+					train_one_button.setEnabled(false);
+					System.out.println("OUT OF DATA!");
+					graph_draw.stop();
+					return;
+				}
+				System.out.println(numcorrect+" correct out of "+batch_size);
+				results.add(numcorrect);
 			}
 		}
 	}
@@ -587,12 +599,28 @@ public class net{
 			else{
 				grap.drawLine(distfromside, visualdim-distfromtop, visualdim-distfromside, visualdim-distfromtop);
 				grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
-				for (int i=1;i<results.length;i++){
-					if (results[i]==-1)break;
-					System.out.println((double)results[i]/(double)batch_size);
-					grap.drawLine(distfromside+(int)((i-1)*(double)((visualdim-distfromside-distfromside)/results.length)), visualdim-distfromtop-(int)((visualdim-distfromtop-distfromtop)*((double)results[i-1]/(double)batch_size)), distfromside+(int)((i)*(double)((visualdim-distfromside-distfromside)/results.length)), visualdim-distfromtop-(int)((visualdim-distfromtop-distfromtop)*((double)results[i]/(double)batch_size)));
+				grap.drawString("Epoch", visualdim-distfromside-50, visualdim-distfromtop);
+				grap.drawString("0", distfromside, visualdim-distfromtop+20);
+				grap.drawString(results.size()/4+"", distfromside+200, visualdim-distfromtop+20);
+				grap.drawString(2*results.size()/4+"", distfromside+400, visualdim-distfromtop+20);
+				grap.drawString(3*results.size()/4+"", distfromside+600, visualdim-distfromtop+20);
+				grap.drawString(results.size()+"", distfromside+800, visualdim-distfromtop+20);
+				grap.drawString("Accuracy (%)", distfromside, visualdim-distfromtop-800+5);
+				grap.drawString("0", distfromside-15, visualdim-distfromtop+5);
+				grap.drawString("25", distfromside-25, visualdim-distfromtop-200+5);
+				grap.drawString("50", distfromside-25, visualdim-distfromtop-400+5);
+				grap.drawString("75", distfromside-25, visualdim-distfromtop-600+5);
+				grap.drawString("100", distfromside-35, visualdim-distfromtop-800+5);
+				double xratio = 800/(double)results.size();
+				double yratio = 800/(double)batch_size;
+				if (results.size()!=0&&results.get(results.size()-1)==-1){
+					results.remove(results.size()-1);
 				}
-				
+				for (int i=1;i<results.size();i++){
+					//grap.fillRect(distfromside+(int)(i*xratio),visualdim-distfromtop-(int) (results[i]*yratio), 1, 1);
+					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(results.get(i-1)*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (results.get(i)*yratio));
+					//grap.drawLine(distfromside+(int)((i-1)*(double)((visualdim-distfromside-distfromside)/results.length)), visualdim-distfromtop-(int)((visualdim-distfromtop-distfromtop)*((double)results[i-1]/(double)batch_size)), distfromside+(int)((i)*(double)((visualdim-distfromside-distfromside)/results.length)), visualdim-distfromtop-(int)((visualdim-distfromtop-distfromtop)*((double)results[i]/(double)batch_size)));
+				}
 			}
 		}
 	}

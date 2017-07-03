@@ -61,11 +61,12 @@ public class testing {
 		if (visuala){
 			test.create_window();
 		}
-		test.graph_results(400);
+		test.graphing = true;
+		//test.graph_results(420);
 		if (test.auto){
 			for (int a=0;a<420;a++){
 				System.out.println(a+" "+test.learn_batch(test.batch_size));
-			}
+			} 
 			System.out.println();
 			test.scanner.close();
 		}
