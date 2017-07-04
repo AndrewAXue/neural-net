@@ -19,10 +19,10 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.Timer;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -35,7 +35,6 @@ import java.io.FileWriter;
 
 //TODO
 //Using validation data to prevent overfitting
-//Improve UI more buttons
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
 //Heatmap of different numbers
@@ -43,6 +42,7 @@ import java.io.FileWriter;
 //More more cost functions
 
 //DONE!
+//Buttons for training, exporting, graphing and feeding
 //Graphing performance over epochs
 //Ability to switch between graph and net views
 //Support for different cost functions
@@ -89,7 +89,11 @@ public class net{
   
   
 	// Buttons used in the VISUALIZATION
-	JButton graph_button,train_batch_button,feed_button,train_all_batch_button,train_one_button;
+	JButton graph_button,train_batch_button,feed_button,train_all_batch_button,train_one_button,export_button;
+	// Label for printing status reports
+	JLabel status_text;
+	// Textfield for choosing file name of where to export net
+	JTextField export_text;
 	// Sets limit for maximum number of nodes per layer displayed in visualization
 	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
@@ -388,19 +392,34 @@ public class net{
 		
 		JPanel buttons = new JPanel();
 		graph_button = new JButton("GRAPH!");
-		buttons.add(graph_button);
 		graph_button.addActionListener(new act());
+		buttons.add(graph_button);
+		
+		
 		feed_button = new JButton("FEED!");
+		feed_button.addActionListener(new act());
 		buttons.add(feed_button);
+		
 		train_one_button = new JButton("TRAIN ONE!");
 		train_one_button.addActionListener(new act());
 		buttons.add(train_one_button);
+		
 		train_batch_button = new JButton("TRAIN BATCH!");
 		train_batch_button.addActionListener(new act());
 		buttons.add(train_batch_button);
+		
 		train_all_batch_button =  new JButton("TRAIN ALL BATCHES!");
 		train_all_batch_button.addActionListener(new act());
 		buttons.add(train_all_batch_button);
+		
+		export_text = new JTextField();
+		export_text.setColumns(8);
+		buttons.add(export_text);
+		
+		export_button = new JButton("EXPORT!");
+		export_button.addActionListener(new act());
+		buttons.add(export_button);
+		
 		buttons.setBackground(Color.PINK);
 		
 		cons.fill = GridBagConstraints.BOTH;
@@ -412,12 +431,14 @@ public class net{
 		cons.gridy = 0;
 		cons.anchor = GridBagConstraints.PAGE_START;
 		cons.insets = new Insets(0,0,0,0);
-		
 		everything.add(buttons,cons);
 		
 		
 		JPanel downfill = new JPanel();
-		downfill.add(new JTextField());
+		status_text = new JLabel("VISUALIZATION");
+		status_text.setForeground(Color.WHITE);
+		status_text.setFont(new Font("Arial Black", Font.BOLD, 25));
+		downfill.add(status_text);
 		downfill.setBackground(Color.BLUE);
 		
 		
@@ -474,9 +495,8 @@ public class net{
 	}
 	
 	
-	
+	// Preform different actions depending on the button pressed
 	public class act implements ActionListener{
-		
 		public void actionPerformed(ActionEvent e) {
 			if (e.getSource() == train_one_button){
 				feed_and_set_expected(true);
@@ -488,9 +508,11 @@ public class net{
 					train_all_batch_button.setEnabled(false);
 					train_one_button.setEnabled(false);
 					System.out.println("OUT OF DATA!");
+					status_text.setText("OUT OF DATA!");
 					return;
 				}
 				System.out.println(numcorrect+" correct out of "+batch_size);
+				status_text.setText(numcorrect+" correct out of "+batch_size);
 				results.add(numcorrect);
 				window.repaint();
 			}
@@ -498,7 +520,6 @@ public class net{
 				graph_draw.start();
 			}
 			else if (e.getSource() == graph_button){
-				//graph_results(100);
 				graphing = !graphing;
 				if (graphing){
 					graph_button.setText("NET!");
@@ -508,6 +529,14 @@ public class net{
 				}
 				window.repaint();
 			}
+			else if (e.getSource() == export_button){
+				String file_name = export_text.getText();
+				if (file_name.length()!=0){
+					export_net(file_name+".txt");
+					System.out.println("Exported successfully to "+file_name+".txt");
+					status_text.setText("Exported successfully to "+file_name+".txt");
+				}
+			}
 			else if (e.getSource() == graph_draw){
 				int numcorrect = learn_batch(batch_size);
 				if (numcorrect==-1){
@@ -515,10 +544,12 @@ public class net{
 					train_all_batch_button.setEnabled(false);
 					train_one_button.setEnabled(false);
 					System.out.println("OUT OF DATA!");
+					status_text.setText("OUT OF DATA!");
 					graph_draw.stop();
 					return;
 				}
 				System.out.println(numcorrect+" correct out of "+batch_size);
+				status_text.setText(numcorrect+" correct out of "+batch_size);
 				results.add(numcorrect);
 			}
 		}
@@ -597,6 +628,7 @@ public class net{
 				}
 			}
 			else{
+				// Creating the axis and axis labels
 				grap.drawLine(distfromside, visualdim-distfromtop, visualdim-distfromside, visualdim-distfromtop);
 				grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
 				grap.drawString("Epoch", visualdim-distfromside-50, visualdim-distfromtop);
@@ -611,56 +643,19 @@ public class net{
 				grap.drawString("50", distfromside-25, visualdim-distfromtop-400+5);
 				grap.drawString("75", distfromside-25, visualdim-distfromtop-600+5);
 				grap.drawString("100", distfromside-35, visualdim-distfromtop-800+5);
+				// Ratios used to even spread out data points among available space
 				double xratio = 800/(double)results.size();
 				double yratio = 800/(double)batch_size;
 				if (results.size()!=0&&results.get(results.size()-1)==-1){
 					results.remove(results.size()-1);
 				}
+				// Draws a line graph between all data points (which are the accuracy of each batch)
 				for (int i=1;i<results.size();i++){
-					//grap.fillRect(distfromside+(int)(i*xratio),visualdim-distfromtop-(int) (results[i]*yratio), 1, 1);
 					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(results.get(i-1)*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (results.get(i)*yratio));
-					//grap.drawLine(distfromside+(int)((i-1)*(double)((visualdim-distfromside-distfromside)/results.length)), visualdim-distfromtop-(int)((visualdim-distfromtop-distfromtop)*((double)results[i-1]/(double)batch_size)), distfromside+(int)((i)*(double)((visualdim-distfromside-distfromside)/results.length)), visualdim-distfromtop-(int)((visualdim-distfromtop-distfromtop)*((double)results[i]/(double)batch_size)));
 				}
 			}
 		}
 	}
-	/*
-	private class graph_VISUALIZATION extends JComponent {
-		int num_epoch;
-		graph_VISUALIZATION(int temp_num_epoch) {
-            setPreferredSize(new Dimension(visualdim, visualdim));
-            num_epoch = temp_num_epoch;
-        }
-		
-		public void paintComponent(Graphics g){
-			super.paintComponents(g);
-			Graphics2D grap = (Graphics2D) g; 	
-			grap.setColor(Color.BLACK);
-			grap.fillRect(0, 0, 1000, 1000);
-			grap.setColor(Color.WHITE);
-			grap.setFont(new Font("Arial Black", Font.BOLD, 15));
-			grap.drawLine(distfromside, visualdim-distfromtop, visualdim-distfromside, visualdim-distfromtop);
-			grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
-			if (result!=-1){
-				grap.drawLine(0, 300, result, 300);
-			}
-			
-			for (int i=0;i<num_epoch;i++){
-				int numcorrect = learn_batch(batch_size);
-				if (numcorrect==-1){
-					train_batch_button.setEnabled(false);
-					train_all_batch_button.setEnabled(false);
-					train_one_button.setEnabled(false);
-					
-					System.out.println("OUT OF DATA!");
-					return;
-				}
-				System.out.println(numcorrect);
-			}
-			
-		}
-	}
-	*/
 	
 	// Prints out the weights and biases of all the nodes of the net
 	void netprint(){
@@ -681,15 +676,6 @@ public class net{
 	protected void export_net(String file){
 		try{
 			FileWriter write = new FileWriter(file);
-			/*
-			 * double learning_rate = 1.5;
-				// Choosing which cost function to use
-				boolean quadratic = false;
-				// Stores the size of each batch for training
-				int batch_size;
-				// Whether to softmax the results
-				boolean softmax = false;
-			 */
 			write.append(numlayer+" layers "+" learning rate: "+learning_rate);
 			if (quadratic){
 				write.append(" quadratic ");
@@ -732,6 +718,7 @@ public class net{
 		}
 		catch (Exception e){
 			System.out.println("Error writing to file");
+			status_text.setText("Error writing to file");
 			e.printStackTrace();
 		}
 	}
@@ -766,6 +753,7 @@ public class net{
 		}
 		if (printresults){
 			System.out.println("Expected/Correct: "+correct+" Actual: "+maxind);
+			status_text.setText("Expected/Correct: "+correct+" Actual: "+maxind);
 		}
 		if (maxind==correct)return 1;
 		return 0;
@@ -830,6 +818,7 @@ public class net{
 	protected void feedforward(double data[]){
 		if (data.length!=alllayersize[0]){
 			System.out.println("ERROR: Input layer size different then number of inputs");
+			status_text.setText("ERROR: Input layer size different then number of inputs");
 		}
 		else{
 			for (int i=0;i<alllayersize[0];i++){
@@ -859,12 +848,6 @@ public class net{
 				}
 			}
 		}
-		/*
-		System.out.print("Expected: "+expected[0]);
-		System.out.printf("Act: %f",getoutput()[0]);
-		System.out.println();
-		System.out.println("Cost: "+Math.pow((expected[0]-getoutput()[0]),2)/2);
-		*/
 	}
 	
 	//Work in progress matrix matrix multiplication. The function would not be much quicker as more advanced
