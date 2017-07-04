@@ -43,7 +43,34 @@ public class testing {
 		}
 		*/
 		
+		int temp[] = {784,30,10};
+		test = new net(temp);
 		
+		
+		test.batch_size = 10000;
+		test.learning_rate = 3;
+		test.quadratic = true;
+		test.softmax = false;
+
+		test.auto = autoa;
+		test.print = true;
+		if (visuala){
+			test.create_window();
+		}
+		test.graphing = true;
+		if (test.auto){
+			for (int i=0;i<30;i++){
+				test.scanner = new Scanner(new File("train.csv"));
+				test.scanner.nextLine();
+				for (int a=0;a<420;a++){
+					for (int k=0;k<10;k++)
+					test.learn_batch(test.batch_size);
+				} 
+				test.scanner.close();
+			}
+		}
+		
+		/*
 		int temp[] = {784,70,10};
 		test = new net(temp);
 		test.scanner = new Scanner(new File("train.csv"));
@@ -67,6 +94,6 @@ public class testing {
 			System.out.println();
 			test.scanner.close();
 		}
-
+		*/
 	}
 }
