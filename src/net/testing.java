@@ -19,7 +19,7 @@ public class testing {
 			System.out.println("Learning rate: "+i);
 			int temp[] = {784,30,10};
 			test = new net(temp);
-			test.scanner = new Scanner(new File("train.csv"));
+			test.scanner = new Scanner(new File("digit_data/train.csv"));
 			test.learning_rate = i;
 			test.batch_size = 100;
 			test.quadratic = false;
@@ -42,38 +42,39 @@ public class testing {
 			}
 		}
 		*/
-		
+		/*
 		int temp[] = {784,30,10};
 		test = new net(temp);
+		test.scanner = new Scanner(new File("digit_data/train.csv"));
+		test.scanner.nextLine();
 		
-		
-		test.batch_size = 10000;
+		test.batch_size = 100;
 		test.learning_rate = 3;
-		test.quadratic = true;
-		test.softmax = false;
+		test.quadratic = false;
+		test.softmax = true;
 
 		test.auto = autoa;
 		test.print = true;
 		if (visuala){
 			test.create_window();
 		}
-		test.graphing = true;
 		if (test.auto){
-			for (int i=0;i<30;i++){
-				test.scanner = new Scanner(new File("train.csv"));
-				test.scanner.nextLine();
+		//	for (int i=0;i<30;i++){
 				for (int a=0;a<420;a++){
 					for (int k=0;k<10;k++)
 					test.learn_batch(test.batch_size);
 				} 
 				test.scanner.close();
-			}
+			//}
 		}
-		
+		*/
+		test = new net("digit_exported_nets/traied_net.txt");
+		test.create_window();
+		test.scanner = new Scanner(new File("digit_data/train.csv"));
 		/*
 		int temp[] = {784,70,10};
 		test = new net(temp);
-		test.scanner = new Scanner(new File("train.csv"));
+		test.scanner = new Scanner(new File("digit_data/train.csv"));
 		test.scanner.nextLine();
 
 		test.batch_size = 100;

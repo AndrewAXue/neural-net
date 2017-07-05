@@ -24,9 +24,9 @@ public class drawnum {
     
 	public static void main(String[] args) throws FileNotFoundException {
 		// Initializes a scanner to take in data from the csv file
-		//scanner = new Scanner(new File("train.csv"));
-		//scanner = new Scanner(new File("mynums.csv"));
-		scanner = new Scanner(new File("test.csv"));
+		//scanner = new Scanner(new File("digit_data/train.csv"));
+		//scanner = new Scanner(new File("digit_data/mynums.csv"));
+		scanner = new Scanner(new File("digit_data/test.csv"));
         scanner.useDelimiter(",");
         scanner.nextLine();
         // Transforms the values on the csv from strings to ints
