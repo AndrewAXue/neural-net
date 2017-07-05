@@ -7,9 +7,9 @@ import java.util.Scanner;
 
 public class kaggletest {
 	public static void main(String[] args) throws IOException {
-		FileWriter write = new FileWriter("answer.csv");
+		FileWriter write = new FileWriter("digit_data/answer.csv");
 		write.append("ImageID,Label\n");
-		net test = new net("TESTSEVEN.txt");
+		net test = new net("digit_exported_nets/TESTSEVEN.txt");
 		Scanner scanner = new Scanner(new File("test.csv"));
 		scanner.nextLine();
 		for (int a=0;a<28000;a++){

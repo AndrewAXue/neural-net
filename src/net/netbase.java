@@ -23,6 +23,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.Timer;
+
+import net.net.nodeclass;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -739,40 +742,44 @@ public class netbase{
 	}
 
 	//Given a list of inputs of the same size as the input layer, feeds the values through the net
-	protected void feedforward(double data[]){
-		if (data.length!=alllayersize[0]){
-			System.out.println("ERROR: Input layer size different then number of inputs");
-			status_text.setText("ERROR: Input layer size different then number of inputs");
-		}
-		else{
-			for (int i=0;i<alllayersize[0];i++){
-				allnode[0][i].avalue = allnode[0][i].zvalue = data[i];
+		protected void feedforward(double data[]){
+			// If the amount of input data is different then the number of input nodes, print an error
+			if (data.length!=alllayersize[0]){
+				System.out.println("ERROR: Input layer size different then number of inputs");
+				status_text.setText("ERROR: Input layer size different then number of inputs");
 			}
-			for (int i=0;i<allweight.length;i++){
-				for (int k=0;k<allweight[i].length;k++){
-					double newz = 0;
-					nodeclass active = allnode[i+1][k];
-					for (int a=0;a<allweight[i][0].length;a++){
-						newz+=allnode[i][a].avalue*allweight[i][k][a].weight;
+			else{
+				// Set the input layer to the data received
+				for (int i=0;i<alllayersize[0];i++){
+					allnode[0][i].avalue = allnode[0][i].zvalue = data[i];
+				}
+				// Feed the data forward layer by layer
+				for (int i=0;i<allweight.length;i++){
+					for (int k=0;k<allweight[i].length;k++){
+						double newz = 0;
+						nodeclass active = allnode[i+1][k];
+						for (int a=0;a<allweight[i][0].length;a++){
+							newz+=allnode[i][a].avalue*allweight[i][k][a].weight;
+						}
+						active.zvalue = newz+active.bias;
+						active.avalue = sigmoid(active.zvalue);
 					}
-					active.zvalue = newz+active.bias;
-					active.avalue = sigmoid(active.zvalue);
 				}
-			}
-			if (softmax){
-				double sum = 0;
-				double expvalues[] =  new double[alllayersize[numlayer-1]];
-				for (int i=0;i<alllayersize[numlayer-1];i++){
-					expvalues[i] = Math.exp(allnode[numlayer-1][i].zvalue);
-					sum+=expvalues[i];
-				
-				}
-				for (int i=0;i<alllayersize[numlayer-1];i++){
-					allnode[numlayer-1][i].avalue = expvalues[i]/sum;
+				// if applicable, softmax the output layer for better probability distribution
+				if (softmax){
+					double sum = 0;
+					double expvalues[] =  new double[alllayersize[numlayer-1]];
+					for (int i=0;i<alllayersize[numlayer-1];i++){
+						expvalues[i] = Math.exp(allnode[numlayer-1][i].zvalue);
+						sum+=expvalues[i];
+					
+					}
+					for (int i=0;i<alllayersize[numlayer-1];i++){
+						allnode[numlayer-1][i].avalue = expvalues[i]/sum;
+					}
 				}
 			}
 		}
-	}
 	
 	//Work in progress matrix matrix multiplication. The function would not be much quicker as more advanced
 	//linear algebra theorums would have to be used to really see an impact.

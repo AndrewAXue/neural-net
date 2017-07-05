@@ -61,13 +61,19 @@ import java.io.FileWriter;
 
 
 public class net{
-	Timer graph_draw = new Timer(0, new act());
-	boolean print = false;
-	int result = -1;
-	ArrayList<Integer> results = new ArrayList<Integer>();
-	boolean graphing = false;
+	
 	//Scanner for CSV file
 	Scanner scanner;
+	
+	//Training data
+	private class train_data{
+		int solution;
+		double pixels[] = new double[782];
+	}
+	train_data all_train_data [];
+	
+	//Testing data
+	double all_test_data [][];
 	
 	//HYPERPARAMETERS. These should be set when the net is initialized.
 	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
@@ -79,6 +85,8 @@ public class net{
 	int batch_size;
 	// Whether to softmax the results
 	boolean softmax;
+	// Whether status updates should be printed;
+	boolean print;
 	
 	
 	//VISUALIZATION ASPECTS
@@ -86,6 +94,14 @@ public class net{
 	JFrame window = new JFrame();
 	// Control if VISUALIZATION appears
 	boolean visual = true;
+	
+	//GRAPHING ASPECTS
+	// Timer for continuously updating the graph with new batches
+	Timer graph_draw = new Timer(0, new actions());
+	// Used for graphing. Stores the results of testing batches
+	ArrayList<Integer> results = new ArrayList<Integer>();
+	// Denoted the setting. If false, it is on the graphing screen, else it is on the node screen.
+	boolean graphing = false;
   
   
 	// Buttons used in the VISUALIZATION
@@ -141,6 +157,7 @@ public class net{
 		double sig = sigmoid(x);
 		return sig*(1-sig);
 	}
+
 		
 	// A weight in the neural net. This class will be stored in a 3d array of weights, where the first indice
 	// represents all the weights from indice to indice+1 layers, the second indice represents
@@ -204,22 +221,61 @@ public class net{
 		}
 	}
 	
-	
-	/*
-	cons.fill = GridBagConstraints.HORIZONTAL;
-	cons.weightx = 0;
-	cons.weighty = 0;
-	cons.ipadx = 0;
-	cons.ipady = 0;
-	cons.gridx = 0;
-	cons.gridy = 0;
-	cons.anchor = GridBagConstraints.FIRST_LINE_START;
-	cons.insets = new Insets(0,0,0,0);
-	
-	FIRST_LINE_START	PAGE_START		FIRST_LINE_END
-	LINE_START			CENTER			LINE_END
-	LAST_LINE_START		PAGE_END		LAST_LINE_END
-	 */
+	// Writes down all the properties of the net (weights, biases) to a txt file
+		protected void export_net(String file){
+			try{
+				
+				FileWriter write = new FileWriter(file);
+				// Writing the hyperparameters of the net, number of layers, learning rate, cost functions used, etc.
+				write.append(numlayer+" layers "+" learning rate: "+learning_rate);
+				if (quadratic){
+					write.append(" quadratic ");
+				}
+				else if (softmax){
+					write.append(" softmax log-likelihood ");
+				}
+				else{
+					write.append(" cross-entropy ");
+				}
+				write.append(" batch size "+batch_size);
+				write.append("\n");
+				for (int i=0;i<numlayer;i++){
+					write.append(alllayersize[i]+" ");
+				}
+				write.append('\n');
+				write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
+				// Printing characteristics of the nodes
+				for (int i=0;i<numlayer;i++){
+					for (int k=0;k<alllayersize[i];k++){
+						nodeclass active = allnode[i][k];
+						write.append(Double.toString(active.bias)+" "+active.xpos+" "+active.ypos+" " );
+						if (allnode[i][k].drawnode){
+							write.append("1\n");
+						}
+						else{
+							write.append("0\n");
+						}
+					}
+				}
+				// Printing the characteristics of all the weights
+				write.append("Weight properties\n");
+				for (int i=0;i<allweight.length;i++){
+					for (int k=0;k<allweight[i].length;k++){
+						for (int j=0;j<allweight[i][k].length;j++){
+							write.append(allweight[i][k][j].weight+" ");
+						}
+						write.append("\n");
+					}
+				}
+				write.close();
+			}
+			// If the file does not exist or there is some other error, report it
+			catch (Exception e){
+				System.out.println("Error writing to file");
+				status_text.setText("Error writing to file");
+				e.printStackTrace();
+			}
+		}
 	
 	// Initializes net with a text file (outputted from export_net function). This should only be used for 
 	// already trained and exported neural nets. Error and partial derivatives are not initialized/inaccurate
@@ -227,7 +283,14 @@ public class net{
 	net(String file) throws FileNotFoundException{
 		// Drawing the partial derivatives is automatically suppressed to increase efficiency
 		drawdev = false;
-		Scanner scanner = new Scanner(new File(file));
+		Scanner scanner = null;
+		try{
+			scanner = new Scanner(new File(file));
+		}
+		catch(FileNotFoundException exp){
+			System.out.println("File not found!");
+			exp.printStackTrace();
+		}
 		// First line contains the number of layers
 		String tempnumlayers = scanner.nextLine();
 		numlayer = Character.getNumericValue(tempnumlayers.charAt(0));
@@ -359,6 +422,21 @@ public class net{
 		*/
 	}
 	
+	/*
+	cons.fill = GridBagConstraints.HORIZONTAL;
+	cons.weightx = 0;
+	cons.weighty = 0;
+	cons.ipadx = 0;
+	cons.ipady = 0;
+	cons.gridx = 0;
+	cons.gridy = 0;
+	cons.anchor = GridBagConstraints.FIRST_LINE_START;
+	cons.insets = new Insets(0,0,0,0);
+	
+	FIRST_LINE_START	PAGE_START		FIRST_LINE_END
+	LINE_START			CENTER			LINE_END
+	LAST_LINE_START		PAGE_END		LAST_LINE_END
+	 */
 	protected void create_window(){
 		//Set characteristics of window
 		window = new JFrame("VISUALIZATION");
@@ -388,36 +466,39 @@ public class net{
 		cons.insets = new Insets(0,0,0,0);		
 		everything.add(visuals,cons);
 		
-		//Currently just filling portions of the window to be used in the future for stats and buttons
 		
+		//JPanel for all the buttons. 
 		JPanel buttons = new JPanel();
 		graph_button = new JButton("GRAPH!");
-		graph_button.addActionListener(new act());
+		graph_button.addActionListener(new actions());
+		graph_button.setToolTipText("Switch to graph view");
 		buttons.add(graph_button);
 		
-		
 		feed_button = new JButton("FEED!");
-		feed_button.addActionListener(new act());
+		feed_button.addActionListener(new actions());
 		buttons.add(feed_button);
 		
 		train_one_button = new JButton("TRAIN ONE!");
-		train_one_button.addActionListener(new act());
+		train_one_button.addActionListener(new actions());
 		buttons.add(train_one_button);
 		
 		train_batch_button = new JButton("TRAIN BATCH!");
-		train_batch_button.addActionListener(new act());
+		train_batch_button.addActionListener(new actions());
 		buttons.add(train_batch_button);
 		
 		train_all_batch_button =  new JButton("TRAIN ALL BATCHES!");
-		train_all_batch_button.addActionListener(new act());
+		train_all_batch_button.addActionListener(new actions());
 		buttons.add(train_all_batch_button);
 		
 		export_text = new JTextField();
-		export_text.setColumns(8);
+		export_text.addActionListener(new actions());
+		export_text.setColumns(15);
+		export_text.setText("trained_net");
 		buttons.add(export_text);
 		
 		export_button = new JButton("EXPORT!");
-		export_button.addActionListener(new act());
+		export_button.addActionListener(new actions());
+		export_button.setToolTipText("Exports the net to the given file name on the left. Should be used on a trained net");
 		buttons.add(export_button);
 		
 		buttons.setBackground(Color.PINK);
@@ -433,7 +514,7 @@ public class net{
 		cons.insets = new Insets(0,0,0,0);
 		everything.add(buttons,cons);
 		
-		
+		// Currently just a filler for some area below the visualization
 		JPanel downfill = new JPanel();
 		status_text = new JLabel("VISUALIZATION");
 		status_text.setForeground(Color.WHITE);
@@ -453,7 +534,7 @@ public class net{
 		cons.insets = new Insets(0,0,0,0);
 		everything.add(downfill,cons);
 		
-		
+		// Currently just a filler for some are on the right of the visualization
 		JPanel rightfill = new JPanel();
 		rightfill.setBackground(Color.ORANGE);
 	
@@ -474,34 +555,14 @@ public class net{
 	}
 	
 	
-	protected void graph_results(int num_epoch){
-		/*
-		graph = new JFrame("More VISUALIZATION");
-		//Set characteristics of window
-		graph.setSize(1000, 1000);
-		graph.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		graph.setResizable(false);
-		graph.setIconImage(new ImageIcon("neural.jpg").getImage());
-		
-		
-		graph.add(new graph_VISUALIZATION(100));
-		graph.setVisible(true);
-		*/
-		graphing = true;
-		window.repaint();
-		for (int i=0;i<num_epoch;i++){
-			results.add(learn_batch(batch_size));
-		}
-	}
-	
-	
 	// Preform different actions depending on the button pressed
-	public class act implements ActionListener{
+	public class actions implements ActionListener{
 		public void actionPerformed(ActionEvent e) {
 			if (e.getSource() == train_one_button){
 				feed_and_set_expected(true);
 			}
 			else if (e.getSource() == train_batch_button){
+				// Train a batch and print out the number of cases correct
 				int numcorrect = learn_batch(batch_size);
 				if (numcorrect==-1){
 					train_batch_button.setEnabled(false);
@@ -520,21 +581,30 @@ public class net{
 				graph_draw.start();
 			}
 			else if (e.getSource() == graph_button){
+				// Toggle the graphing boolean
 				graphing = !graphing;
+				// Depending on if the graphing boolean is now true, change the text of the button
 				if (graphing){
 					graph_button.setText("NET!");
+					graph_button.setToolTipText("Switch to net view");
 				}
 				else{
 					graph_button.setText("GRAPH!");
+					graph_button.setToolTipText("Switch to graph view");
 				}
 				window.repaint();
 			}
 			else if (e.getSource() == export_button){
+				// When the export button is clicked, create and export to the file name provided by the textfield
 				String file_name = export_text.getText();
 				if (file_name.length()!=0){
 					export_net(file_name+".txt");
 					System.out.println("Exported successfully to "+file_name+".txt");
 					status_text.setText("Exported successfully to "+file_name+".txt");
+				}
+				else{
+					System.out.println("File name cannot be empty!");
+					status_text.setText("File name cannot be empty!");
 				}
 			}
 			else if (e.getSource() == graph_draw){
@@ -551,6 +621,9 @@ public class net{
 				System.out.println(numcorrect+" correct out of "+batch_size);
 				status_text.setText(numcorrect+" correct out of "+batch_size);
 				results.add(numcorrect);
+			}
+			else if (e.getSource() == export_text){
+				export_button.doClick();
 			}
 		}
 	}
@@ -631,7 +704,7 @@ public class net{
 				// Creating the axis and axis labels
 				grap.drawLine(distfromside, visualdim-distfromtop, visualdim-distfromside, visualdim-distfromtop);
 				grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
-				grap.drawString("Epoch", visualdim-distfromside-50, visualdim-distfromtop);
+				grap.drawString("Batch", visualdim-distfromside-50, visualdim-distfromtop);
 				grap.drawString("0", distfromside, visualdim-distfromtop+20);
 				grap.drawString(results.size()/4+"", distfromside+200, visualdim-distfromtop+20);
 				grap.drawString(2*results.size()/4+"", distfromside+400, visualdim-distfromtop+20);
@@ -672,78 +745,47 @@ public class net{
 		}
 	}
 	
-	// Writes down all the properties of the net (weights, biases) to a txt file
-	protected void export_net(String file){
-		try{
-			FileWriter write = new FileWriter(file);
-			write.append(numlayer+" layers "+" learning rate: "+learning_rate);
-			if (quadratic){
-				write.append(" quadratic ");
-			}
-			else if (softmax){
-				write.append(" softmax log-likelihood ");
-			}
-			else{
-				write.append(" cross-entropy ");
-			}
-			write.append(" batch size "+batch_size);
-			write.append("\n");
-			for (int i=0;i<numlayer;i++){
-				write.append(alllayersize[i]+" ");
-			}
-			write.append('\n');
-			write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
-			for (int i=0;i<numlayer;i++){
-				for (int k=0;k<alllayersize[i];k++){
-					nodeclass active = allnode[i][k];
-					write.append(Double.toString(active.bias)+" "+active.xpos+" "+active.ypos+" " );
-					if (allnode[i][k].drawnode){
-						write.append("1\n");
-					}
-					else{
-						write.append("0\n");
-					}
-				}
-			}
-			write.append("Weight properties\n");
-			for (int i=0;i<allweight.length;i++){
-				for (int k=0;k<allweight[i].length;k++){
-					for (int j=0;j<allweight[i][k].length;j++){
-						write.append(allweight[i][k][j].weight+" ");
-					}
-					write.append("\n");
-				}
-			}
-			write.close();
-		}
-		catch (Exception e){
-			System.out.println("Error writing to file");
-			status_text.setText("Error writing to file");
-			e.printStackTrace();
-		}
-	}
-	
 	// Outputs whether the coordinates of two (rectangular)objects collide with each other.
 	boolean collision(int x1, int y1, int x2, int y2,int siz1, int siz2){
 		return (x1+siz1>=x2&&x1<=x2+siz2&&y1+siz1>=y2&&y1<=y2+siz2);
 	}
 	
+	// Clears all the partial derivatives. Should be called after gradient descent
+		private void cleardev(){
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<alllayersize[i];k++){
+					// error matrix reset is redundant 
+					error[i][k] = 0;
+					allnode[i][k].biasdev = 0;
+					if (i!=numlayer-1){
+						for (int a=0;a<alllayersize[i+1];a++){
+							allweight[i][a][k].weightdev = 0; 
+						}
+					}
+				}
+			}
+		}
+	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	// and returns a "1" if the actual and expected are the same. Can also print the expected and actual
 	// values.
 	public int feed_and_set_expected(boolean printresults){
+		// If there is no more data, return an error value
 		if (!scanner.hasNextLine())return -1;
+		// Parse the csv using comma delimiters
 		String[] lst = scanner.nextLine().split(",");
+		// Set up a one-hot vector denoting the correct answer
 		int correct = Integer.parseInt(lst[0]);
 		double ans[] = {0,0,0,0,0,0,0,0,0,0};
 		ans[correct] = 1;
+		// Set up the input data and feed it through the network
     	double doublst[] = new double[784];
     	for (int a=0;a<784;a++){
     		doublst[a] = Double.parseDouble(lst[a+1])/255.0;
     	}
 		feedforward(doublst);
 		expected = ans;
-		
+		// Get the output layer and compare to the expected answer
 		double result[] = getoutput();
 		int maxind=0;
 		for (int i=0;i<10;i++){
@@ -751,28 +793,14 @@ public class net{
 				maxind = i;
 			}
 		}
+		// If applicable, print out the expected and actual values
 		if (printresults){
 			System.out.println("Expected/Correct: "+correct+" Actual: "+maxind);
 			status_text.setText("Expected/Correct: "+correct+" Actual: "+maxind);
 		}
+		// If the actual and expected values are the same, return 1
 		if (maxind==correct)return 1;
 		return 0;
-	}
-	
-	// Clears all the partial derivatives. Should be called after gradient descent
-	private void cleardev(){
-		for (int i=0;i<numlayer;i++){
-			for (int k=0;k<alllayersize[i];k++){
-				// error matrix reset is redundant 
-				error[i][k] = 0;
-				allnode[i][k].biasdev = 0;
-				if (i!=numlayer-1){
-					for (int a=0;a<alllayersize[i+1];a++){
-						allweight[i][a][k].weightdev = 0; 
-					}
-				}
-			}
-		}
 	}
 	
 	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
@@ -794,6 +822,8 @@ public class net{
 	private class mouseevent implements MouseListener{
 		// Toggles whether the weights of a certain node should be shown. Done by clicking the node.
 		public void mouseClicked(MouseEvent e) {
+			// If the mouse was clicked on one of the nodes, toggle the drawweight property of the node and repaint
+			// the window to reflect the change
 			boolean done = false;
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
@@ -816,14 +846,17 @@ public class net{
 
 	//Given a list of inputs of the same size as the input layer, feeds the values through the net
 	protected void feedforward(double data[]){
+		// If the amount of input data is different then the number of input nodes, print an error
 		if (data.length!=alllayersize[0]){
 			System.out.println("ERROR: Input layer size different then number of inputs");
 			status_text.setText("ERROR: Input layer size different then number of inputs");
 		}
 		else{
+			// Set the input layer to the data received
 			for (int i=0;i<alllayersize[0];i++){
 				allnode[0][i].avalue = allnode[0][i].zvalue = data[i];
 			}
+			// Feed the data forward layer by layer
 			for (int i=0;i<allweight.length;i++){
 				for (int k=0;k<allweight[i].length;k++){
 					double newz = 0;
@@ -835,6 +868,7 @@ public class net{
 					active.avalue = sigmoid(active.zvalue);
 				}
 			}
+			// if applicable, softmax the output layer for better probability distribution
 			if (softmax){
 				double sum = 0;
 				double expvalues[] =  new double[alllayersize[numlayer-1]];
@@ -925,7 +959,6 @@ public class net{
 				active.biasdev += newerror;
 			}
 		}
-		
 		window.repaint();
 	}
 	
