@@ -47,11 +47,13 @@ public class testing {
 		test = new net(temp);
 		
 		
-		test.batch_size = 10000;
+		test.batch_size = 100;
 		test.learning_rate = 3;
 		test.quadratic = true;
 		test.softmax = false;
 
+		test.scanner = new Scanner(new File("train.csv"));
+		test.scanner.nextLine();
 		test.auto = autoa;
 		test.print = true;
 		if (visuala){
@@ -59,15 +61,13 @@ public class testing {
 		}
 		test.graphing = true;
 		if (test.auto){
-			for (int i=0;i<30;i++){
-				test.scanner = new Scanner(new File("train.csv"));
-				test.scanner.nextLine();
+
 				for (int a=0;a<420;a++){
 					for (int k=0;k<10;k++)
 					test.learn_batch(test.batch_size);
 				} 
 				test.scanner.close();
-			}
+			
 		}
 		
 		/*
