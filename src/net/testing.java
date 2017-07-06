@@ -73,9 +73,9 @@ public class testing {
 			//}
 		}
 		*/
-		test = new net("digit_exported_nets/traied_net.txt");
+		test = new net("digit_exported_nets/trained_net.txt");
+		test.load_training_data();
 		test.create_window();
-		test.scanner = new Scanner(new File("digit_data/train.csv"));
 		/*
 		int temp[] = {784,70,10};
 		test = new net(temp);

@@ -67,13 +67,44 @@ public class net{
 	
 	//Training data
 	private class train_data{
-		int solution;
+		double solution[] = new double[10];
 		double pixels[] = new double[782];
+		train_data(double tempsolution[],double temppixels[]){
+			solution = tempsolution;
+			pixels = temppixels;
+		}
 	}
-	train_data all_train_data [];
+	//train_data all_train_data [] = new train_data[42000];
+	double all_train_data[][] = new double [42000][];
 	
 	//Testing data
 	double all_test_data [][];
+	
+	public void load_training_data(){
+		try {
+			scanner = new Scanner(new File("digit_data/train.csv"));
+		} catch (FileNotFoundException exp) {
+			System.out.println("FILE NOT FOUND!");
+			status_text.setText("FILE NOT FOUND!");
+			exp.printStackTrace();
+		}
+		scanner.nextLine();
+		for (int i=0;i<42000;i++){
+			System.out.println(i);
+			String string_data[] = scanner.nextLine().split(",");
+			/*
+			int correct = Integer.parseInt(string_data[0]);
+			double ans[] = {0,0,0,0,0,0,0,0,0,0};
+			ans[correct] = 1;
+			*/
+			// Set up the input data and feed it through the network
+	    	double doublst[] = new double[784];
+	    	for (int a=0;a<784;a++){
+	    		doublst[a] = Double.parseDouble(string_data[a+1])/255.0;
+	    	}
+	    	all_train_data[i] = doublst;
+		}
+	}
 	
 	//HYPERPARAMETERS. These should be set when the net is initialized.
 	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
@@ -222,60 +253,60 @@ public class net{
 	}
 	
 	// Writes down all the properties of the net (weights, biases) to a txt file
-		protected void export_net(String file){
-			try{
-				
-				FileWriter write = new FileWriter(file);
-				// Writing the hyperparameters of the net, number of layers, learning rate, cost functions used, etc.
-				write.append(numlayer+" layers "+" learning rate: "+learning_rate);
-				if (quadratic){
-					write.append(" quadratic ");
-				}
-				else if (softmax){
-					write.append(" softmax log-likelihood ");
-				}
-				else{
-					write.append(" cross-entropy ");
-				}
-				write.append(" batch size "+batch_size);
-				write.append("\n");
-				for (int i=0;i<numlayer;i++){
-					write.append(alllayersize[i]+" ");
-				}
-				write.append('\n');
-				write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
-				// Printing characteristics of the nodes
-				for (int i=0;i<numlayer;i++){
-					for (int k=0;k<alllayersize[i];k++){
-						nodeclass active = allnode[i][k];
-						write.append(Double.toString(active.bias)+" "+active.xpos+" "+active.ypos+" " );
-						if (allnode[i][k].drawnode){
-							write.append("1\n");
-						}
-						else{
-							write.append("0\n");
-						}
+	protected void export_net(String file){
+		try{
+			
+			FileWriter write = new FileWriter(file);
+			// Writing the hyperparameters of the net, number of layers, learning rate, cost functions used, etc.
+			write.append(numlayer+" layers "+" learning rate: "+learning_rate);
+			if (quadratic){
+				write.append(" quadratic ");
+			}
+			else if (softmax){
+				write.append(" softmax log-likelihood ");
+			}
+			else{
+				write.append(" cross-entropy ");
+			}
+			write.append(" batch size "+batch_size);
+			write.append("\n");
+			for (int i=0;i<numlayer;i++){
+				write.append(alllayersize[i]+" ");
+			}
+			write.append('\n');
+			write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
+			// Printing characteristics of the nodes
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<alllayersize[i];k++){
+					nodeclass active = allnode[i][k];
+					write.append(Double.toString(active.bias)+" "+active.xpos+" "+active.ypos+" " );
+					if (allnode[i][k].drawnode){
+						write.append("1\n");
+					}
+					else{
+						write.append("0\n");
 					}
 				}
-				// Printing the characteristics of all the weights
-				write.append("Weight properties\n");
-				for (int i=0;i<allweight.length;i++){
-					for (int k=0;k<allweight[i].length;k++){
-						for (int j=0;j<allweight[i][k].length;j++){
-							write.append(allweight[i][k][j].weight+" ");
-						}
-						write.append("\n");
+			}
+			// Printing the characteristics of all the weights
+			write.append("Weight properties\n");
+			for (int i=0;i<allweight.length;i++){
+				for (int k=0;k<allweight[i].length;k++){
+					for (int j=0;j<allweight[i][k].length;j++){
+						write.append(allweight[i][k][j].weight+" ");
 					}
+					write.append("\n");
 				}
-				write.close();
 			}
-			// If the file does not exist or there is some other error, report it
-			catch (Exception e){
-				System.out.println("Error writing to file");
-				status_text.setText("Error writing to file");
-				e.printStackTrace();
-			}
+			write.close();
 		}
+		// If the file does not exist or there is some other error, report it
+		catch (Exception e){
+			System.out.println("Error writing to file");
+			status_text.setText("Error writing to file");
+			e.printStackTrace();
+		}
+	}
 	
 	// Initializes net with a text file (outputted from export_net function). This should only be used for 
 	// already trained and exported neural nets. Error and partial derivatives are not initialized/inaccurate
@@ -557,11 +588,11 @@ public class net{
 	
 	// Preform different actions depending on the button pressed
 	public class actions implements ActionListener{
-		public void actionPerformed(ActionEvent e) {
-			if (e.getSource() == train_one_button){
+		public void actionPerformed(ActionEvent action) {
+			if (action.getSource() == train_one_button){
 				feed_and_set_expected(true);
 			}
-			else if (e.getSource() == train_batch_button){
+			else if (action.getSource() == train_batch_button){
 				// Train a batch and print out the number of cases correct
 				int numcorrect = learn_batch(batch_size);
 				if (numcorrect==-1){
@@ -577,10 +608,10 @@ public class net{
 				results.add(numcorrect);
 				window.repaint();
 			}
-			else if (e.getSource() == train_all_batch_button){
+			else if (action.getSource() == train_all_batch_button){
 				graph_draw.start();
 			}
-			else if (e.getSource() == graph_button){
+			else if (action.getSource() == graph_button){
 				// Toggle the graphing boolean
 				graphing = !graphing;
 				// Depending on if the graphing boolean is now true, change the text of the button
@@ -594,7 +625,7 @@ public class net{
 				}
 				window.repaint();
 			}
-			else if (e.getSource() == export_button){
+			else if (action.getSource() == export_button){
 				// When the export button is clicked, create and export to the file name provided by the textfield
 				String file_name = export_text.getText();
 				if (file_name.length()!=0){
@@ -607,7 +638,7 @@ public class net{
 					status_text.setText("File name cannot be empty!");
 				}
 			}
-			else if (e.getSource() == graph_draw){
+			else if (action.getSource() == graph_draw){
 				int numcorrect = learn_batch(batch_size);
 				if (numcorrect==-1){
 					train_batch_button.setEnabled(false);
@@ -622,7 +653,7 @@ public class net{
 				status_text.setText(numcorrect+" correct out of "+batch_size);
 				results.add(numcorrect);
 			}
-			else if (e.getSource() == export_text){
+			else if (action.getSource() == export_text){
 				export_button.doClick();
 			}
 		}
@@ -751,20 +782,20 @@ public class net{
 	}
 	
 	// Clears all the partial derivatives. Should be called after gradient descent
-		private void cleardev(){
-			for (int i=0;i<numlayer;i++){
-				for (int k=0;k<alllayersize[i];k++){
-					// error matrix reset is redundant 
-					error[i][k] = 0;
-					allnode[i][k].biasdev = 0;
-					if (i!=numlayer-1){
-						for (int a=0;a<alllayersize[i+1];a++){
-							allweight[i][a][k].weightdev = 0; 
-						}
+	private void cleardev(){
+		for (int i=0;i<numlayer;i++){
+			for (int k=0;k<alllayersize[i];k++){
+				// error matrix reset is redundant 
+				error[i][k] = 0;
+				allnode[i][k].biasdev = 0;
+				if (i!=numlayer-1){
+					for (int a=0;a<alllayersize[i+1];a++){
+						allweight[i][a][k].weightdev = 0; 
 					}
 				}
 			}
 		}
+	}
 	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	// and returns a "1" if the actual and expected are the same. Can also print the expected and actual

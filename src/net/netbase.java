@@ -22,9 +22,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-
-import net.net.train_data;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
