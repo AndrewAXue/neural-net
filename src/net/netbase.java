@@ -22,9 +22,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.Timer;
 
-import net.net.nodeclass;
+import net.net.train_data;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -68,6 +67,12 @@ public class netbase{
 	//Scanner for CSV file
 	Scanner scanner;
 	
+	//Training data
+	double all_train_data [];
+	
+	//Testing data
+	double all_test_data [];
+	
 	//HYPERPARAMETERS. These should be set when the net is initialized.
 	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
 	// are slower but steadier
@@ -80,6 +85,8 @@ public class netbase{
 	boolean softmax;
 	// Whether status updates should be printed;
 	boolean print;
+	// Sets limit for maximum number of nodes per layer displayed in visualization
+	int maxnodes = 6;
 	
 	
 	//VISUALIZATION ASPECTS
@@ -101,8 +108,6 @@ public class netbase{
 	JLabel status_text;
 	// Textfield for choosing file name of where to export net
 	JTextField export_text;
-	// Sets limit for maximum number of nodes per layer displayed in visualization
-	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
 	boolean drawdev = false;
 	

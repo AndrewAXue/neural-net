@@ -87,6 +87,8 @@ public class net{
 	boolean softmax;
 	// Whether status updates should be printed;
 	boolean print;
+	// Sets limit for maximum number of nodes per layer displayed in visualization
+	int maxnodes = 6;
 	
 	
 	//VISUALIZATION ASPECTS
@@ -110,8 +112,6 @@ public class net{
 	JLabel status_text;
 	// Textfield for choosing file name of where to export net
 	JTextField export_text;
-	// Sets limit for maximum number of nodes per layer displayed in visualization
-	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
 	boolean drawdev = false;
 	
