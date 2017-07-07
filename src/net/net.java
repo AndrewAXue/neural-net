@@ -34,6 +34,8 @@ import java.io.FileWriter;
 // figured if I made everything from scratch I would understand it better.
 
 //TODO
+//fisher-yates shuffling algorithm
+//matrix multiplication
 //Using validation data to prevent overfitting
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
