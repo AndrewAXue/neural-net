@@ -77,15 +77,19 @@ public class testing {
 		test = new net(temp);
 		
 		test.load_training_data();
-		if (visuala){
-			test.create_window();
-		}
-		test.batch_size = 100;
+		
+		test.train_batch_size = 10;
+		test.test_batch_size = 10000;
 		test.learning_rate = 3;
 		test.quadratic = false;
 		test.softmax = true;
+		test.num_epoch = 30;
 		
 		test.auto = autoa;
+		
+		if (visuala){
+			test.create_window();
+		}
 		
 		if (test.auto){
 			test.graph_draw.start();

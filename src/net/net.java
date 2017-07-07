@@ -67,13 +67,12 @@ public class net{
 	
 	//Which data point currently on
 	int data_ind = 0;
+	int epoch_ind = 0;
 	//Training data
 	private class train_data{
 		double solution[] = new double[10];
 		double pixels[] = new double[782];
 		int answer;
-		// If this data was used in the current epoch
-		boolean used = false;
 		train_data(double tempsolution[],double temppixels[]){
 			solution = tempsolution;
 			pixels = temppixels;
@@ -116,14 +115,18 @@ public class net{
 	double learning_rate;
 	// Choosing which cost function to use (quadratic or cross-entropy at time of writing)
 	boolean quadratic;
-	// Stores the size of each batch for training
-	int batch_size;
 	// Whether to softmax the results
 	boolean softmax;
 	// Whether status updates should be printed;
 	boolean print;
 	// Sets limit for maximum number of nodes per layer displayed in visualization
 	int maxnodes = 6;
+	// Sets the number of epochs to be trained;
+	int num_epoch;
+	// The size of training batches
+	int train_batch_size;
+	// The size of testing batches
+	int test_batch_size;
 	
 	
 	//VISUALIZATION ASPECTS
@@ -136,13 +139,14 @@ public class net{
 	// Timer for continuously updating the graph with new batches
 	Timer graph_draw = new Timer(0, new actions());
 	// Used for graphing. Stores the results of testing batches
-	ArrayList<Integer> results = new ArrayList<Integer>();
+	int epoch_results [];
+	ArrayList<Integer> batch_results = new ArrayList<Integer>();
 	// Denoted the setting. If false, it is on the graphing screen, else it is on the node screen.
 	boolean graphing = false;
   
   
 	// Buttons used in the VISUALIZATION
-	JButton graph_button,train_batch_button,feed_button,train_all_batch_button,train_one_button,export_button;
+	JButton graph_button,train_epoch_button,feed_button,train_all_epoch_button,export_button;
 	// Label for printing status reports
 	JLabel status_text;
 	// Textfield for choosing file name of where to export net
@@ -272,7 +276,7 @@ public class net{
 			else{
 				write.append(" cross-entropy ");
 			}
-			write.append(" batch size "+batch_size);
+			write.append(" training batch size "+train_batch_size+" testing batch size "+test_batch_size);
 			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
@@ -472,6 +476,10 @@ public class net{
 	LAST_LINE_START		PAGE_END		LAST_LINE_END
 	 */
 	protected void create_window(){
+		epoch_results = new int[num_epoch];
+		for (int i=0;i<num_epoch;i++){
+			epoch_results[i]=-1;
+		}
 		//Set characteristics of window
 		window = new JFrame("VISUALIZATION");
 		window.setSize(1000, 1000);
@@ -512,17 +520,13 @@ public class net{
 		feed_button.addActionListener(new actions());
 		buttons.add(feed_button);
 		
-		train_one_button = new JButton("TRAIN ONE!");
-		train_one_button.addActionListener(new actions());
-		buttons.add(train_one_button);
+		train_epoch_button = new JButton("TRAIN EPOCH!");
+		train_epoch_button.addActionListener(new actions());
+		buttons.add(train_epoch_button);
 		
-		train_batch_button = new JButton("TRAIN BATCH!");
-		train_batch_button.addActionListener(new actions());
-		buttons.add(train_batch_button);
-		
-		train_all_batch_button =  new JButton("TRAIN ALL BATCHES!");
-		train_all_batch_button.addActionListener(new actions());
-		buttons.add(train_all_batch_button);
+		train_all_epoch_button =  new JButton("TRAIN ALL EPOCHS!");
+		train_all_epoch_button.addActionListener(new actions());
+		buttons.add(train_all_epoch_button);
 		
 		export_text = new JTextField();
 		export_text.addActionListener(new actions());
@@ -592,24 +596,25 @@ public class net{
 	// Preform different actions depending on the button pressed
 	public class actions implements ActionListener{
 		public void actionPerformed(ActionEvent action) {
-			if (action.getSource() == train_one_button){
-				feed_and_set_expected(true);
-			}
-			else if (action.getSource() == train_batch_button){
-				// Train a batch and print out the number of cases correct
-				int numcorrect = learn_batch(batch_size);
+			if (action.getSource() == train_epoch_button){
+				train_epoch();
+				data_ind=0;
+				int numcorrect = learn_batch(test_batch_size);
 				if (numcorrect==-1){
-					train_batch_button.setEnabled(false);
-					train_all_batch_button.setEnabled(false);
-					train_one_button.setEnabled(false);
+					train_all_epoch_button.setEnabled(false);
+					train_epoch_button.setEnabled(false);
 					System.out.println("OUT OF DATA!");
 					status_text.setText("OUT OF DATA!");
+					graph_draw.stop();
 					return;
 				}
-				System.out.println(numcorrect+" correct out of "+batch_size);
-				status_text.setText(numcorrect+" correct out of "+batch_size);
+				epoch_results[epoch_ind] = numcorrect;
+				System.out.println(numcorrect+" correct out of "+test_batch_size);
+				status_text.setText(numcorrect+" correct out of "+test_batch_size);
+				epoch_ind++;
+				window.repaint();
 			}
-			else if (action.getSource() == train_all_batch_button){
+			else if (action.getSource() == train_all_epoch_button){
 				graph_draw.start();
 			}
 			else if (action.getSource() == graph_button){
@@ -640,18 +645,23 @@ public class net{
 				}
 			}
 			else if (action.getSource() == graph_draw){
-				int numcorrect = learn_batch(batch_size);
+				train_epoch();
+				data_ind=0;
+				int numcorrect = learn_batch(test_batch_size);
 				if (numcorrect==-1){
-					train_batch_button.setEnabled(false);
-					train_all_batch_button.setEnabled(false);
-					train_one_button.setEnabled(false);
+					train_all_epoch_button.setEnabled(false);
+					train_epoch_button.setEnabled(false);
 					System.out.println("OUT OF DATA!");
 					status_text.setText("OUT OF DATA!");
 					graph_draw.stop();
+					if (epoch_ind==num_epoch)graph_draw.stop();
 					return;
 				}
-				System.out.println(numcorrect+" correct out of "+batch_size);
-				status_text.setText(numcorrect+" correct out of "+batch_size);
+				epoch_results[epoch_ind] = numcorrect;
+				System.out.println(numcorrect+" correct out of "+test_batch_size);
+				status_text.setText(numcorrect+" correct out of "+test_batch_size);
+				epoch_ind++;
+				window.repaint();
 			}
 			else if (action.getSource() == export_text){
 				export_button.doClick();
@@ -736,10 +746,10 @@ public class net{
 				grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
 				grap.drawString("Batch", visualdim-distfromside-50, visualdim-distfromtop);
 				grap.drawString("0", distfromside, visualdim-distfromtop+20);
-				grap.drawString(results.size()/4+"", distfromside+200, visualdim-distfromtop+20);
-				grap.drawString(2*results.size()/4+"", distfromside+400, visualdim-distfromtop+20);
-				grap.drawString(3*results.size()/4+"", distfromside+600, visualdim-distfromtop+20);
-				grap.drawString(results.size()+"", distfromside+800, visualdim-distfromtop+20);
+				grap.drawString(num_epoch/4+"", distfromside+200, visualdim-distfromtop+20);
+				grap.drawString(2*num_epoch/4+"", distfromside+400, visualdim-distfromtop+20);
+				grap.drawString(3*num_epoch/4+"", distfromside+600, visualdim-distfromtop+20);
+				grap.drawString(num_epoch+"", distfromside+800, visualdim-distfromtop+20);
 				grap.drawString("Accuracy (%)", distfromside, visualdim-distfromtop-800+5);
 				grap.drawString("0", distfromside-15, visualdim-distfromtop+5);
 				grap.drawString("25", distfromside-25, visualdim-distfromtop-200+5);
@@ -747,14 +757,14 @@ public class net{
 				grap.drawString("75", distfromside-25, visualdim-distfromtop-600+5);
 				grap.drawString("100", distfromside-35, visualdim-distfromtop-800+5);
 				// Ratios used to even spread out data points among available space
-				double xratio = 800/(double)results.size();
-				double yratio = 800/(double)batch_size;
-				if (results.size()!=0&&results.get(results.size()-1)==-1){
-					results.remove(results.size()-1);
-				}
+				double xratio = 800/(double)num_epoch;
+				double yratio = 800/(double)test_batch_size;
 				// Draws a line graph between all data points (which are the accuracy of each batch)
-				for (int i=1;i<results.size();i++){
-					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(results.get(i-1)*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (results.get(i)*yratio));
+				for (int i=0;i<num_epoch;i++){
+					if (epoch_results[i]!=-1)
+					grap.fillRect(distfromside+(int)((i)*xratio), visualdim-distfromtop-(int)(epoch_results[i]*yratio), 3, 3);
+					else break;
+					//grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(results.get(i-1)*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (results.get(i)*yratio));
 				}
 			}
 		}
@@ -796,6 +806,33 @@ public class net{
 		}
 	}
 	
+	protected void train_epoch(){
+		//shuffle(all_train_data);
+		int batch=0;
+		data_ind=0;
+		while(learn_batch(train_batch_size)!=-1){
+			if (batch%100==0) System.out.println("Batch: "+batch);
+			batch++;  
+		}
+	}
+	
+	
+	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
+	// numbers classified correctly in the batch.
+	protected int learn_batch(int batch_size){
+		int corr=0;
+		for (int i=0;i<batch_size;i++){
+			int result = feed_and_set_expected(false);
+			if (result==-1)return -1;
+			corr+=result;
+			backpropagate();
+		}
+		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
+		// learn
+		gradient_descent(batch_size);
+		return corr;
+	}
+	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	// and returns a "1" if the actual and expected are the same. Can also print the expected and actual
 	// values.
@@ -805,7 +842,6 @@ public class net{
 		train_data current_data = all_train_data[data_ind];
 		feedforward(current_data.pixels);
 		expected = current_data.solution;
-		current_data.used = true;
 		// Get the output layer and compare to the expected answer
 		double result[] = getoutput();
 		int maxind=0;
@@ -823,23 +859,6 @@ public class net{
 		// If the actual and expected values are the same, return 1
 		if (maxind==current_data.answer)return 1;
 		return 0;
-	}
-	
-	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
-	// numbers classified correctly in the batch.
-	protected int learn_batch(int batch_size){
-		int corr=0;
-		for (int i=0;i<batch_size;i++){
-			int result = feed_and_set_expected(false);
-			if (result==-1)return -1;
-			corr+=result;
-			backpropagate();
-		}
-		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
-		// learn
-		gradient_descent(batch_size);
-		results.add(corr);
-		return corr;
 	}
 	
 	private class mouseevent implements MouseListener{
