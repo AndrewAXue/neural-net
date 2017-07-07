@@ -661,6 +661,7 @@ public class net{
 	
 	// Graphics aspect of the framework
 	private class VISUALIZATION extends JComponent {
+		
 		VISUALIZATION() {
             setPreferredSize(new Dimension(visualdim, visualdim));
         }
@@ -698,9 +699,7 @@ public class net{
 								}
 							}
 						}
-						
 					}
-					
 				}
 				//Drawing nodes
 				for (int i=0;i<alllayersize.length;i++){
@@ -898,7 +897,6 @@ public class net{
 				for (int i=0;i<alllayersize[numlayer-1];i++){
 					expvalues[i] = Math.exp(allnode[numlayer-1][i].zvalue);
 					sum+=expvalues[i];
-				
 				}
 				for (int i=0;i<alllayersize[numlayer-1];i++){
 					allnode[numlayer-1][i].avalue = expvalues[i]/sum;
