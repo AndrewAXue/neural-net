@@ -263,7 +263,6 @@ public class net{
 	// Writes down all the properties of the net (weights, biases) to a txt file
 	protected void export_net(String file){
 		try{
-			
 			FileWriter write = new FileWriter(file);
 			// Writing the hyperparameters of the net, number of layers, learning rate, cost functions used, etc.
 			write.append(numlayer+" layers "+" learning rate: "+learning_rate);
@@ -277,6 +276,7 @@ public class net{
 				write.append(" cross-entropy ");
 			}
 			write.append(" training batch size "+train_batch_size+" testing batch size "+test_batch_size);
+			write.append(" "+(epoch_ind+1)+"epochs run");
 			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
