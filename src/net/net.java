@@ -65,15 +65,50 @@ public class net{
 	//Scanner for CSV file
 	Scanner scanner;
 	
+	//Which data point currently on
+	int data_ind = 0;
 	//Training data
 	private class train_data{
-		int solution;
+		double solution[] = new double[10];
 		double pixels[] = new double[782];
+		int answer;
+		// If this data was used in the current epoch
+		boolean used = false;
+		train_data(double tempsolution[],double temppixels[]){
+			solution = tempsolution;
+			pixels = temppixels;
+		}
 	}
-	train_data all_train_data [];
+	train_data all_train_data [] = new train_data[42000];
 	
 	//Testing data
 	double all_test_data [][];
+	
+	public void load_training_data(){
+		try {
+			scanner = new Scanner(new File("digit_data/train.csv"));
+		} catch (FileNotFoundException exp) {
+			System.out.println("FILE NOT FOUND!");
+			status_text.setText("FILE NOT FOUND!");
+			exp.printStackTrace();
+		}
+		scanner.nextLine();
+		for (int i=0;i<42000;i++){
+			String string_data[] = scanner.nextLine().split(",");
+			
+			int correct = Integer.parseInt(string_data[0]);
+			double ans[] = {0,0,0,0,0,0,0,0,0,0};
+			ans[correct] = 1;
+			// Set up the input data and feed it through the network
+	    	double doublst[] = new double[784];
+	    	for (int a=0;a<784;a++){
+	    		doublst[a] = Double.parseDouble(string_data[a+1])/255.0;
+	    	}
+	    	all_train_data[i] = new train_data(ans,doublst);
+	    	all_train_data[i].answer = correct;
+		}
+		System.out.println("DONE");
+	}
 	
 	//HYPERPARAMETERS. These should be set when the net is initialized.
 	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
@@ -87,6 +122,8 @@ public class net{
 	boolean softmax;
 	// Whether status updates should be printed;
 	boolean print;
+	// Sets limit for maximum number of nodes per layer displayed in visualization
+	int maxnodes = 6;
 	
 	
 	//VISUALIZATION ASPECTS
@@ -110,8 +147,6 @@ public class net{
 	JLabel status_text;
 	// Textfield for choosing file name of where to export net
 	JTextField export_text;
-	// Sets limit for maximum number of nodes per layer displayed in visualization
-	int maxnodes = 6;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
 	boolean drawdev = false;
 	
@@ -222,60 +257,60 @@ public class net{
 	}
 	
 	// Writes down all the properties of the net (weights, biases) to a txt file
-		protected void export_net(String file){
-			try{
-				
-				FileWriter write = new FileWriter(file);
-				// Writing the hyperparameters of the net, number of layers, learning rate, cost functions used, etc.
-				write.append(numlayer+" layers "+" learning rate: "+learning_rate);
-				if (quadratic){
-					write.append(" quadratic ");
-				}
-				else if (softmax){
-					write.append(" softmax log-likelihood ");
-				}
-				else{
-					write.append(" cross-entropy ");
-				}
-				write.append(" batch size "+batch_size);
-				write.append("\n");
-				for (int i=0;i<numlayer;i++){
-					write.append(alllayersize[i]+" ");
-				}
-				write.append('\n');
-				write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
-				// Printing characteristics of the nodes
-				for (int i=0;i<numlayer;i++){
-					for (int k=0;k<alllayersize[i];k++){
-						nodeclass active = allnode[i][k];
-						write.append(Double.toString(active.bias)+" "+active.xpos+" "+active.ypos+" " );
-						if (allnode[i][k].drawnode){
-							write.append("1\n");
-						}
-						else{
-							write.append("0\n");
-						}
+	protected void export_net(String file){
+		try{
+			
+			FileWriter write = new FileWriter(file);
+			// Writing the hyperparameters of the net, number of layers, learning rate, cost functions used, etc.
+			write.append(numlayer+" layers "+" learning rate: "+learning_rate);
+			if (quadratic){
+				write.append(" quadratic ");
+			}
+			else if (softmax){
+				write.append(" softmax log-likelihood ");
+			}
+			else{
+				write.append(" cross-entropy ");
+			}
+			write.append(" batch size "+batch_size);
+			write.append("\n");
+			for (int i=0;i<numlayer;i++){
+				write.append(alllayersize[i]+" ");
+			}
+			write.append('\n');
+			write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
+			// Printing characteristics of the nodes
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<alllayersize[i];k++){
+					nodeclass active = allnode[i][k];
+					write.append(Double.toString(active.bias)+" "+active.xpos+" "+active.ypos+" " );
+					if (allnode[i][k].drawnode){
+						write.append("1\n");
+					}
+					else{
+						write.append("0\n");
 					}
 				}
-				// Printing the characteristics of all the weights
-				write.append("Weight properties\n");
-				for (int i=0;i<allweight.length;i++){
-					for (int k=0;k<allweight[i].length;k++){
-						for (int j=0;j<allweight[i][k].length;j++){
-							write.append(allweight[i][k][j].weight+" ");
-						}
-						write.append("\n");
+			}
+			// Printing the characteristics of all the weights
+			write.append("Weight properties\n");
+			for (int i=0;i<allweight.length;i++){
+				for (int k=0;k<allweight[i].length;k++){
+					for (int j=0;j<allweight[i][k].length;j++){
+						write.append(allweight[i][k][j].weight+" ");
 					}
+					write.append("\n");
 				}
-				write.close();
 			}
-			// If the file does not exist or there is some other error, report it
-			catch (Exception e){
-				System.out.println("Error writing to file");
-				status_text.setText("Error writing to file");
-				e.printStackTrace();
-			}
+			write.close();
 		}
+		// If the file does not exist or there is some other error, report it
+		catch (Exception e){
+			System.out.println("Error writing to file");
+			status_text.setText("Error writing to file");
+			e.printStackTrace();
+		}
+	}
 	
 	// Initializes net with a text file (outputted from export_net function). This should only be used for 
 	// already trained and exported neural nets. Error and partial derivatives are not initialized/inaccurate
@@ -283,19 +318,19 @@ public class net{
 	net(String file) throws FileNotFoundException{
 		// Drawing the partial derivatives is automatically suppressed to increase efficiency
 		drawdev = false;
-		Scanner scanner = null;
+		Scanner net_scanner = null;
 		try{
-			scanner = new Scanner(new File(file));
+			net_scanner = new Scanner(new File(file));
 		}
 		catch(FileNotFoundException exp){
 			System.out.println("File not found!");
 			exp.printStackTrace();
 		}
 		// First line contains the number of layers
-		String tempnumlayers = scanner.nextLine();
+		String tempnumlayers = net_scanner.nextLine();
 		numlayer = Character.getNumericValue(tempnumlayers.charAt(0));
 		// Next line contains the size of each of the layers
-		String[] layersizes = scanner.nextLine().split(" ");
+		String[] layersizes = net_scanner.nextLine().split(" ");
 		
 		// Setting up array with all the sizes of the layers
 		alllayersize = new int[numlayer];
@@ -303,13 +338,13 @@ public class net{
 			alllayersize[i] = Integer.parseInt(layersizes[i]);
 		}
 		allnode = new nodeclass[numlayer][];
-		System.out.println("Taking "+scanner.nextLine());
-		scanner.nextLine();
+		System.out.println("Taking "+net_scanner.nextLine());
+		net_scanner.nextLine();
 		// Taking in node properties from the file
 		for (int i=0;i<numlayer;i++){
 			allnode[i] = new nodeclass[alllayersize[i]];
 			for (int k=0;k<alllayersize[i];k++){
-				String nodeprop[] = scanner.nextLine().split(" ");
+				String nodeprop[] = net_scanner.nextLine().split(" ");
 				nodeclass active;
 				allnode[i][k] = active = new nodeclass();
 				active.bias = Double.parseDouble(nodeprop[0]);
@@ -323,27 +358,26 @@ public class net{
 				}
 			}
 		}
-		System.out.println("Taking "+scanner.nextLine());
+		System.out.println("Taking "+net_scanner.nextLine());
 		//Initializing array of matrices that stores all the weights
 		allweight = new weightclass[alllayersize.length-1][][];
 		for (int i=1;i<alllayersize.length;i++){
 			allweight[i-1] = new weightclass[alllayersize[i]][alllayersize[i-1]];
 			for (int k=0;k<alllayersize[i];k++){
-				String tempweight[] = scanner.nextLine().split(" ");
+				String tempweight[] = net_scanner.nextLine().split(" ");
 				for (int l=0;l<alllayersize[i-1];l++){
 					allweight[i-1][k][l] = new weightclass();
 					allweight[i-1][k][l].weight = Double.parseDouble(tempweight[l]);
 				}
 			}
 		}
-		scanner.close();
+		net_scanner.close();
 		
 	}
 	
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	net(int arr[]){
-		
 		alllayersize = arr;
 		numlayer = arr.length;
 		// Creating an error matrix
@@ -557,11 +591,11 @@ public class net{
 	
 	// Preform different actions depending on the button pressed
 	public class actions implements ActionListener{
-		public void actionPerformed(ActionEvent e) {
-			if (e.getSource() == train_one_button){
+		public void actionPerformed(ActionEvent action) {
+			if (action.getSource() == train_one_button){
 				feed_and_set_expected(true);
 			}
-			else if (e.getSource() == train_batch_button){
+			else if (action.getSource() == train_batch_button){
 				// Train a batch and print out the number of cases correct
 				int numcorrect = learn_batch(batch_size);
 				if (numcorrect==-1){
@@ -574,13 +608,11 @@ public class net{
 				}
 				System.out.println(numcorrect+" correct out of "+batch_size);
 				status_text.setText(numcorrect+" correct out of "+batch_size);
-				results.add(numcorrect);
-				window.repaint();
 			}
-			else if (e.getSource() == train_all_batch_button){
+			else if (action.getSource() == train_all_batch_button){
 				graph_draw.start();
 			}
-			else if (e.getSource() == graph_button){
+			else if (action.getSource() == graph_button){
 				// Toggle the graphing boolean
 				graphing = !graphing;
 				// Depending on if the graphing boolean is now true, change the text of the button
@@ -594,7 +626,7 @@ public class net{
 				}
 				window.repaint();
 			}
-			else if (e.getSource() == export_button){
+			else if (action.getSource() == export_button){
 				// When the export button is clicked, create and export to the file name provided by the textfield
 				String file_name = export_text.getText();
 				if (file_name.length()!=0){
@@ -607,7 +639,7 @@ public class net{
 					status_text.setText("File name cannot be empty!");
 				}
 			}
-			else if (e.getSource() == graph_draw){
+			else if (action.getSource() == graph_draw){
 				int numcorrect = learn_batch(batch_size);
 				if (numcorrect==-1){
 					train_batch_button.setEnabled(false);
@@ -620,9 +652,8 @@ public class net{
 				}
 				System.out.println(numcorrect+" correct out of "+batch_size);
 				status_text.setText(numcorrect+" correct out of "+batch_size);
-				results.add(numcorrect);
 			}
-			else if (e.getSource() == export_text){
+			else if (action.getSource() == export_text){
 				export_button.doClick();
 			}
 		}
@@ -630,6 +661,7 @@ public class net{
 	
 	// Graphics aspect of the framework
 	private class VISUALIZATION extends JComponent {
+		
 		VISUALIZATION() {
             setPreferredSize(new Dimension(visualdim, visualdim));
         }
@@ -667,9 +699,7 @@ public class net{
 								}
 							}
 						}
-						
 					}
-					
 				}
 				//Drawing nodes
 				for (int i=0;i<alllayersize.length;i++){
@@ -751,40 +781,31 @@ public class net{
 	}
 	
 	// Clears all the partial derivatives. Should be called after gradient descent
-		private void cleardev(){
-			for (int i=0;i<numlayer;i++){
-				for (int k=0;k<alllayersize[i];k++){
-					// error matrix reset is redundant 
-					error[i][k] = 0;
-					allnode[i][k].biasdev = 0;
-					if (i!=numlayer-1){
-						for (int a=0;a<alllayersize[i+1];a++){
-							allweight[i][a][k].weightdev = 0; 
-						}
+	private void cleardev(){
+		for (int i=0;i<numlayer;i++){
+			for (int k=0;k<alllayersize[i];k++){
+				// error matrix reset is redundant 
+				error[i][k] = 0;
+				allnode[i][k].biasdev = 0;
+				if (i!=numlayer-1){
+					for (int a=0;a<alllayersize[i+1];a++){
+						allweight[i][a][k].weightdev = 0; 
 					}
 				}
 			}
 		}
+	}
 	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	// and returns a "1" if the actual and expected are the same. Can also print the expected and actual
 	// values.
 	public int feed_and_set_expected(boolean printresults){
 		// If there is no more data, return an error value
-		if (!scanner.hasNextLine())return -1;
-		// Parse the csv using comma delimiters
-		String[] lst = scanner.nextLine().split(",");
-		// Set up a one-hot vector denoting the correct answer
-		int correct = Integer.parseInt(lst[0]);
-		double ans[] = {0,0,0,0,0,0,0,0,0,0};
-		ans[correct] = 1;
-		// Set up the input data and feed it through the network
-    	double doublst[] = new double[784];
-    	for (int a=0;a<784;a++){
-    		doublst[a] = Double.parseDouble(lst[a+1])/255.0;
-    	}
-		feedforward(doublst);
-		expected = ans;
+		if (data_ind==all_train_data.length)return -1;
+		train_data current_data = all_train_data[data_ind];
+		feedforward(current_data.pixels);
+		expected = current_data.solution;
+		current_data.used = true;
 		// Get the output layer and compare to the expected answer
 		double result[] = getoutput();
 		int maxind=0;
@@ -795,11 +816,12 @@ public class net{
 		}
 		// If applicable, print out the expected and actual values
 		if (printresults){
-			System.out.println("Expected/Correct: "+correct+" Actual: "+maxind);
-			status_text.setText("Expected/Correct: "+correct+" Actual: "+maxind);
+			System.out.println("Expected/Correct: "+current_data.answer+" Actual: "+maxind);
+			status_text.setText("Expected/Correct: "+current_data.answer+" Actual: "+maxind);
 		}
+		data_ind++;
 		// If the actual and expected values are the same, return 1
-		if (maxind==correct)return 1;
+		if (maxind==current_data.answer)return 1;
 		return 0;
 	}
 	
@@ -816,6 +838,7 @@ public class net{
 		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
 		// learn
 		gradient_descent(batch_size);
+		results.add(corr);
 		return corr;
 	}
 	
@@ -841,7 +864,6 @@ public class net{
 		public void mouseExited(MouseEvent e) {}
 		public void mousePressed(MouseEvent e) {}
 		public void mouseReleased(MouseEvent e) {}
-		
 	}
 
 	//Given a list of inputs of the same size as the input layer, feeds the values through the net
@@ -875,7 +897,6 @@ public class net{
 				for (int i=0;i<alllayersize[numlayer-1];i++){
 					expvalues[i] = Math.exp(allnode[numlayer-1][i].zvalue);
 					sum+=expvalues[i];
-				
 				}
 				for (int i=0;i<alllayersize[numlayer-1];i++){
 					allnode[numlayer-1][i].avalue = expvalues[i]/sum;
@@ -950,10 +971,8 @@ public class net{
 					
 					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime;
 					//BP4
-					allweight[i][a][k].weightdev += active.avalue*error[i+1][a];
-					
+					allweight[i][a][k].weightdev += active.avalue*error[i+1][a];	
 				}
-				
 				error[i][k] = newerror;
 				//BP3
 				active.biasdev += newerror;
