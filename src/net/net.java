@@ -65,17 +65,21 @@ public class net{
 	//Scanner for CSV file
 	Scanner scanner;
 	
+	//Which data point currently on
+	int data_ind = 0;
 	//Training data
 	private class train_data{
 		double solution[] = new double[10];
 		double pixels[] = new double[782];
+		int answer;
+		// If this data was used in the current epoch
+		boolean used = false;
 		train_data(double tempsolution[],double temppixels[]){
 			solution = tempsolution;
 			pixels = temppixels;
 		}
 	}
-	//train_data all_train_data [] = new train_data[42000];
-	double all_train_data[][] = new double [42000][];
+	train_data all_train_data [] = new train_data[42000];
 	
 	//Testing data
 	double all_test_data [][];
@@ -90,20 +94,20 @@ public class net{
 		}
 		scanner.nextLine();
 		for (int i=0;i<42000;i++){
-			System.out.println(i);
 			String string_data[] = scanner.nextLine().split(",");
-			/*
+			
 			int correct = Integer.parseInt(string_data[0]);
 			double ans[] = {0,0,0,0,0,0,0,0,0,0};
 			ans[correct] = 1;
-			*/
 			// Set up the input data and feed it through the network
 	    	double doublst[] = new double[784];
 	    	for (int a=0;a<784;a++){
 	    		doublst[a] = Double.parseDouble(string_data[a+1])/255.0;
 	    	}
-	    	all_train_data[i] = doublst;
+	    	all_train_data[i] = new train_data(ans,doublst);
+	    	all_train_data[i].answer = correct;
 		}
+		System.out.println("DONE");
 	}
 	
 	//HYPERPARAMETERS. These should be set when the net is initialized.
@@ -314,19 +318,19 @@ public class net{
 	net(String file) throws FileNotFoundException{
 		// Drawing the partial derivatives is automatically suppressed to increase efficiency
 		drawdev = false;
-		Scanner scanner = null;
+		Scanner net_scanner = null;
 		try{
-			scanner = new Scanner(new File(file));
+			net_scanner = new Scanner(new File(file));
 		}
 		catch(FileNotFoundException exp){
 			System.out.println("File not found!");
 			exp.printStackTrace();
 		}
 		// First line contains the number of layers
-		String tempnumlayers = scanner.nextLine();
+		String tempnumlayers = net_scanner.nextLine();
 		numlayer = Character.getNumericValue(tempnumlayers.charAt(0));
 		// Next line contains the size of each of the layers
-		String[] layersizes = scanner.nextLine().split(" ");
+		String[] layersizes = net_scanner.nextLine().split(" ");
 		
 		// Setting up array with all the sizes of the layers
 		alllayersize = new int[numlayer];
@@ -334,13 +338,13 @@ public class net{
 			alllayersize[i] = Integer.parseInt(layersizes[i]);
 		}
 		allnode = new nodeclass[numlayer][];
-		System.out.println("Taking "+scanner.nextLine());
-		scanner.nextLine();
+		System.out.println("Taking "+net_scanner.nextLine());
+		net_scanner.nextLine();
 		// Taking in node properties from the file
 		for (int i=0;i<numlayer;i++){
 			allnode[i] = new nodeclass[alllayersize[i]];
 			for (int k=0;k<alllayersize[i];k++){
-				String nodeprop[] = scanner.nextLine().split(" ");
+				String nodeprop[] = net_scanner.nextLine().split(" ");
 				nodeclass active;
 				allnode[i][k] = active = new nodeclass();
 				active.bias = Double.parseDouble(nodeprop[0]);
@@ -354,27 +358,26 @@ public class net{
 				}
 			}
 		}
-		System.out.println("Taking "+scanner.nextLine());
+		System.out.println("Taking "+net_scanner.nextLine());
 		//Initializing array of matrices that stores all the weights
 		allweight = new weightclass[alllayersize.length-1][][];
 		for (int i=1;i<alllayersize.length;i++){
 			allweight[i-1] = new weightclass[alllayersize[i]][alllayersize[i-1]];
 			for (int k=0;k<alllayersize[i];k++){
-				String tempweight[] = scanner.nextLine().split(" ");
+				String tempweight[] = net_scanner.nextLine().split(" ");
 				for (int l=0;l<alllayersize[i-1];l++){
 					allweight[i-1][k][l] = new weightclass();
 					allweight[i-1][k][l].weight = Double.parseDouble(tempweight[l]);
 				}
 			}
 		}
-		scanner.close();
+		net_scanner.close();
 		
 	}
 	
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	net(int arr[]){
-		
 		alllayersize = arr;
 		numlayer = arr.length;
 		// Creating an error matrix
@@ -605,8 +608,6 @@ public class net{
 				}
 				System.out.println(numcorrect+" correct out of "+batch_size);
 				status_text.setText(numcorrect+" correct out of "+batch_size);
-				results.add(numcorrect);
-				window.repaint();
 			}
 			else if (action.getSource() == train_all_batch_button){
 				graph_draw.start();
@@ -651,7 +652,6 @@ public class net{
 				}
 				System.out.println(numcorrect+" correct out of "+batch_size);
 				status_text.setText(numcorrect+" correct out of "+batch_size);
-				results.add(numcorrect);
 			}
 			else if (action.getSource() == export_text){
 				export_button.doClick();
@@ -802,20 +802,11 @@ public class net{
 	// values.
 	public int feed_and_set_expected(boolean printresults){
 		// If there is no more data, return an error value
-		if (!scanner.hasNextLine())return -1;
-		// Parse the csv using comma delimiters
-		String[] lst = scanner.nextLine().split(",");
-		// Set up a one-hot vector denoting the correct answer
-		int correct = Integer.parseInt(lst[0]);
-		double ans[] = {0,0,0,0,0,0,0,0,0,0};
-		ans[correct] = 1;
-		// Set up the input data and feed it through the network
-    	double doublst[] = new double[784];
-    	for (int a=0;a<784;a++){
-    		doublst[a] = Double.parseDouble(lst[a+1])/255.0;
-    	}
-		feedforward(doublst);
-		expected = ans;
+		if (data_ind==all_train_data.length)return -1;
+		train_data current_data = all_train_data[data_ind];
+		feedforward(current_data.pixels);
+		expected = current_data.solution;
+		current_data.used = true;
 		// Get the output layer and compare to the expected answer
 		double result[] = getoutput();
 		int maxind=0;
@@ -826,11 +817,12 @@ public class net{
 		}
 		// If applicable, print out the expected and actual values
 		if (printresults){
-			System.out.println("Expected/Correct: "+correct+" Actual: "+maxind);
-			status_text.setText("Expected/Correct: "+correct+" Actual: "+maxind);
+			System.out.println("Expected/Correct: "+current_data.answer+" Actual: "+maxind);
+			status_text.setText("Expected/Correct: "+current_data.answer+" Actual: "+maxind);
 		}
+		data_ind++;
 		// If the actual and expected values are the same, return 1
-		if (maxind==correct)return 1;
+		if (maxind==current_data.answer)return 1;
 		return 0;
 	}
 	
@@ -847,6 +839,7 @@ public class net{
 		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
 		// learn
 		gradient_descent(batch_size);
+		results.add(corr);
 		return corr;
 	}
 	
@@ -872,7 +865,6 @@ public class net{
 		public void mouseExited(MouseEvent e) {}
 		public void mousePressed(MouseEvent e) {}
 		public void mouseReleased(MouseEvent e) {}
-		
 	}
 
 	//Given a list of inputs of the same size as the input layer, feeds the values through the net
@@ -981,10 +973,8 @@ public class net{
 					
 					newerror += allweight[i][a][k].weight*error[i+1][a]*sigmoidprime;
 					//BP4
-					allweight[i][a][k].weightdev += active.avalue*error[i+1][a];
-					
+					allweight[i][a][k].weightdev += active.avalue*error[i+1][a];	
 				}
-				
 				error[i][k] = newerror;
 				//BP3
 				active.biasdev += newerror;
