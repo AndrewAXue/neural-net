@@ -86,6 +86,7 @@ public class testing {
 		test.softmax = true;
 		test.num_epoch = 30;
 		
+		test.initialize_values();
 		test.auto = autoa;
 		
 		if (visuala){

@@ -389,8 +389,8 @@ public class net{
 			}
 		}
 		net_scanner.close();
-		
 	}
+
 	
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
@@ -472,6 +472,15 @@ public class net{
 		}
 		*/
 	}
+
+	protected void initialize_values(){
+		// Setting up matrix multiplication arrays
+		// Setting up array for storing results of testing after each epoch
+		epoch_results = new int[num_epoch];
+		for (int i=0;i<num_epoch;i++){
+			epoch_results[i]=-1;
+		}
+	}
 	
 	/*
 	cons.fill = GridBagConstraints.HORIZONTAL;
@@ -489,10 +498,6 @@ public class net{
 	LAST_LINE_START		PAGE_END		LAST_LINE_END
 	 */
 	protected void create_window(){
-		epoch_results = new int[num_epoch];
-		for (int i=0;i<num_epoch;i++){
-			epoch_results[i]=-1;
-		}
 		//Set characteristics of window
 		window = new JFrame("VISUALIZATION");
 		window.setSize(1000, 1000);
@@ -855,7 +860,7 @@ public class net{
 	
 	
 	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
-	// numbers classified correctly in the batch.
+	// numbers classified correctly in the batch. Backpropagates for every step.
 	protected int learn_batch(int batch_size){
 		int corr=0;
 		for (int i=0;i<batch_size;i++){
