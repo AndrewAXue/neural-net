@@ -2,6 +2,7 @@ package net;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -11,8 +12,8 @@ public class testing {
 	static boolean autoa = false;
 	static boolean visuala = true;
 	
-	public static void main(String[] args) throws FileNotFoundException {
-		
+	public static void main(String[] args) throws IOException {
+		long startTime = System.currentTimeMillis();
 
 		/*
 		for (double i=0.5;i<=5.0;i+=0.5){
@@ -72,23 +73,31 @@ public class testing {
 			//}
 		}
 		*/
-		
 		int temp[] = {784,70,10};
 		test = new net(temp);
 		
-		test.load_training_data();
-		if (visuala){
-			test.create_window();
-		}
-		test.batch_size = 100;
+			test.load_training_data();
+	
+		
+		test.train_batch_size = 10;
+		test.test_batch_size = 10000;
 		test.learning_rate = 3;
 		test.quadratic = false;
 		test.softmax = true;
+		test.num_epoch = 30;
 		
 		test.auto = autoa;
+		
+		if (visuala){
+			test.create_window();
+		}
 		
 		if (test.auto){
 			test.graph_draw.start();
 		}
+		
+		long endTime   = System.currentTimeMillis();
+		long totalTime = endTime - startTime;
+		System.out.println(totalTime);
 	}
 }

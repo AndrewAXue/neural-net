@@ -9,8 +9,8 @@ public class kaggletest {
 	public static void main(String[] args) throws IOException {
 		FileWriter write = new FileWriter("digit_data/answer.csv");
 		write.append("ImageID,Label\n");
-		net test = new net("digit_exported_nets/TESTSEVEN.txt");
-		Scanner scanner = new Scanner(new File("test.csv"));
+		net test = new net("digit_exported_nets/epoch-four.txt");
+		Scanner scanner = new Scanner(new File("digit_data/test.csv"));
 		scanner.nextLine();
 		for (int a=0;a<28000;a++){
 			String line[] = scanner.nextLine().split(",");
