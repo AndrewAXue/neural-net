@@ -953,7 +953,7 @@ public class net{
 			}
 			// if applicable, softmax the output layer for better probability distribution
 			if (softmax){
-				double sum = 0;
+				double sum = 0;;
 				double expvalues[] =  new double[alllayersize[numlayer-1]];
 				for (int i=0;i<alllayersize[numlayer-1];i++){
 					expvalues[i] = Math.exp(allnode[numlayer-1][i].zvalue);
