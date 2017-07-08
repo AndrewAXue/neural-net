@@ -23,9 +23,12 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.Timer;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 
 // Made by Andrew Xue
 // a3xue@edu.uwaterloo.ca
@@ -66,6 +69,10 @@ public class net{
 	
 	//Scanner for CSV file
 	Scanner scanner;
+	BufferedReader read;
+	
+	// Random number chooser for shuffling dataset
+	Random shuffle_rand = new Random();
 	
 	//Which data point currently on
 	int data_ind = 0;
@@ -85,26 +92,30 @@ public class net{
 	//Testing data
 	double all_test_data [][];
 	
-	public void load_training_data(){
+	public void load_training_data() throws IOException{
 		try {
-			scanner = new Scanner(new File("digit_data/train.csv"));
+			read = new BufferedReader(new FileReader("digit_data/train.csv"));
 		} catch (FileNotFoundException exp) {
 			System.out.println("FILE NOT FOUND!");
 			status_text.setText("FILE NOT FOUND!");
 			exp.printStackTrace();
 		}
-		scanner.nextLine();
+		read.readLine();
 		for (int i=0;i<42000;i++){
-			String string_data[] = scanner.nextLine().split(",");
+			String string_data[] = read.readLine().split(",");
 			
 			int correct = Integer.parseInt(string_data[0]);
 			double ans[] = {0,0,0,0,0,0,0,0,0,0};
 			ans[correct] = 1;
 			// Set up the input data and feed it through the network
 	    	double doublst[] = new double[784];
+	    	
 	    	for (int a=0;a<784;a++){
 	    		doublst[a] = Double.parseDouble(string_data[a+1])/255.0;
+	    		
+	    		
 	    	}
+	    	
 	    	all_train_data[i] = new train_data(ans,doublst);
 	    	all_train_data[i].answer = correct;
 		}
@@ -278,7 +289,7 @@ public class net{
 				write.append(" cross-entropy ");
 			}
 			write.append(" training batch size "+train_batch_size+" testing batch size "+test_batch_size);
-			write.append(" "+(epoch_ind+1)+"epochs run");
+			write.append(" "+epoch_ind+" epochs run");
 			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
@@ -600,6 +611,7 @@ public class net{
 		public void actionPerformed(ActionEvent action) {
 			if (action.getSource() == train_epoch_button){
 				train_epoch();
+				shuffle(all_train_data);
 				data_ind=0;
 				int numcorrect = learn_batch(test_batch_size);
 				if (numcorrect==-1){
@@ -607,13 +619,16 @@ public class net{
 					train_epoch_button.setEnabled(false);
 					System.out.println("OUT OF DATA!");
 					status_text.setText("OUT OF DATA!");
-					graph_draw.stop();
 					return;
 				}
 				epoch_results[epoch_ind] = numcorrect;
 				System.out.println(numcorrect+" correct out of "+test_batch_size);
 				status_text.setText(numcorrect+" correct out of "+test_batch_size);
 				epoch_ind++;
+				if (epoch_ind==num_epoch){
+					train_epoch_button.setEnabled(false);
+					train_all_epoch_button.setEnabled(false);
+				}
 				window.repaint();
 			}
 			else if (action.getSource() == train_all_epoch_button){
@@ -648,6 +663,7 @@ public class net{
 			}
 			else if (action.getSource() == graph_draw){
 				train_epoch();
+				shuffle(all_train_data);
 				data_ind=0;
 				int numcorrect = learn_batch(test_batch_size);
 				if (numcorrect==-1){
@@ -656,13 +672,17 @@ public class net{
 					System.out.println("OUT OF DATA!");
 					status_text.setText("OUT OF DATA!");
 					graph_draw.stop();
-					if (epoch_ind==num_epoch)graph_draw.stop();
 					return;
 				}
 				epoch_results[epoch_ind] = numcorrect;
 				System.out.println(numcorrect+" correct out of "+test_batch_size);
 				status_text.setText(numcorrect+" correct out of "+test_batch_size);
 				epoch_ind++;
+				if (epoch_ind==num_epoch){
+					graph_draw.stop();
+					train_epoch_button.setEnabled(false);
+					train_all_epoch_button.setEnabled(false);
+				}
 				window.repaint();
 			}
 			else if (action.getSource() == export_text){
@@ -762,11 +782,15 @@ public class net{
 				double xratio = 800/(double)num_epoch;
 				double yratio = 800/(double)test_batch_size;
 				// Draws a line graph between all data points (which are the accuracy of each batch)
-				for (int i=0;i<num_epoch;i++){
-					if (epoch_results[i]!=-1)
-					grap.fillRect(distfromside+(int)((i)*xratio), visualdim-distfromtop-(int)(epoch_results[i]*yratio), 3, 3);
-					else break;
-					//grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(results.get(i-1)*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (results.get(i)*yratio));
+				for (int i=1;i<num_epoch;i++){
+					if (epoch_results[i]==-1)break;
+					if (i%2==0){
+						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)-5);
+					}
+					else{
+						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)+15);
+					}
+					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(epoch_results[i-1]*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (epoch_results[i]*yratio));
 				}
 			}
 		}
@@ -808,8 +832,19 @@ public class net{
 		}
 	}
 	
+	// Shuffle the data set using the fisher yates shuffling algorithm
+	protected void shuffle(train_data all_train_data[]){
+		for (int i=all_train_data.length-1;i>=0;i--){
+			int targ = shuffle_rand.nextInt(i+1);
+			train_data temp = all_train_data[i];
+			all_train_data[i] = all_train_data[targ];
+			all_train_data[targ] = temp;
+		}		
+	}
+	
+	// Train through an epoch of data and apply backpropagation for each mini batch trained.
 	protected void train_epoch(){
-		//shuffle(all_train_data);
+		shuffle(all_train_data);
 		int batch=0;
 		data_ind=0;
 		while(learn_batch(train_batch_size)!=-1){
