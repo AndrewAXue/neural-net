@@ -194,6 +194,8 @@ public class net{
 	
 	//Error of each node (backpropagation)
 	double error[][];
+	//Matrix error of each node
+	double mat_error[][][];
 	//Expected output vector
 	double expected[];
 	//Whether to use automatic testing or not
@@ -397,6 +399,9 @@ public class net{
 	net(int arr[]){
 		alllayersize = arr;
 		numlayer = arr.length;
+	}
+
+	protected void initialize_values(){
 		// Creating an error matrix
 		error = new double[numlayer][];
 		for (int i=0;i<numlayer;i++){
@@ -412,6 +417,20 @@ public class net{
 				}
 			}
 		}
+		
+				
+		//Printing weight matrices
+		/*
+		for (int i=0;i<allweight.length;i++){
+			System.out.println("Printing layer "+i);
+			for (int k=0;k<allweight[i].length;k++){
+				for (int j=0;j<allweight[i][k].length;j++){
+					System.out.print(allweight[i][k][j].weight+" ");
+				}
+				System.out.println();
+			}
+		}
+		*/
 		//Initializing matrix that stores properties of nodes
 		allnode = new nodeclass[numlayer][];
 		for (int i=0;i<numlayer;i++){
@@ -419,15 +438,6 @@ public class net{
 				throw new RuntimeException("No layers should have 0 nodes.");
 			}
 			allnode[i] = new nodeclass[alllayersize[i]];
-			for (int k=0;k<alllayersize[i];k++){
-				nodeclass active = allnode[i][k] = new nodeclass();
-				active.drawnode=true;
-				if (i==0){
-					active.bias=0;
-				}
-				active.ypos = distfromtop+k*(visualdim/alllayersize[i]);
-				active.xpos = distfromside+i*(visualdim/alllayersize.length);
-			}	
 			if (alllayersize[i]<=maxnodes){
 				for (int k=0;k<alllayersize[i];k++){
 					nodeclass active = allnode[i][k] = new nodeclass();
@@ -458,22 +468,6 @@ public class net{
 			}
 		}
 		
-			
-		//Printing weight matrices
-		/*
-		for (int i=0;i<allweight.length;i++){
-			System.out.println("Printing layer "+i);
-			for (int k=0;k<allweight[i].length;k++){
-				for (int j=0;j<allweight[i][k].length;j++){
-					System.out.print(allweight[i][k][j].weight+" ");
-				}
-				System.out.println();
-			}
-		}
-		*/
-	}
-
-	protected void initialize_values(){
 		// Setting up matrix multiplication arrays
 		// Setting up array for storing results of testing after each epoch
 		epoch_results = new int[num_epoch];
