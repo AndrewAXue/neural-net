@@ -73,6 +73,7 @@ public class testing {
 			//}
 		}
 		*/
+		
 		int temp[] = {784,70,10};
 		test = new net(temp);
 		
@@ -83,7 +84,7 @@ public class testing {
 		test.test_batch_size = 10000;
 		test.learning_rate = 3;
 		test.quadratic = false;
-		test.softmax = true;
+		test.softmax = false;
 		test.num_epoch = 30;
 		
 		test.initialize_values();
@@ -99,6 +100,59 @@ public class testing {
 		
 		long endTime   = System.currentTimeMillis();
 		long totalTime = endTime - startTime;
-		System.out.println(totalTime);
+		System.out.println("Runtime is "+totalTime);
+		
+		
+		/*
+		int temp[] = {2,2,1};
+		test = new net(temp);
+		
+		
+		test.train_batch_size = 3;
+		test.test_batch_size = 10000;
+		test.learning_rate = 3;
+		test.quadratic = false;
+		test.softmax = true;
+		test.num_epoch = 30;
+		
+		test.initialize_values();
+		test.create_window();
+		double data[][] = {{0,0},{1,0},{1,1}};
+		double answer[][] = {{1},{2},{3}};
+		
+		test.feedforward(data[0]);
+		test.expected = answer[0];
+		test.backpropagate();
+		test.feedforward(data[1]);
+		test.expected = answer[1];
+		test.backpropagate();
+		test.feedforward(data[2]);
+		test.expected = answer[2];
+		test.backpropagate();
+		
+		try{
+			Thread.sleep(2000);
+			System.out.println("\n");
+		}
+		catch(Exception e){
+			
+		}
+		test.cleardev();
+		test.window.repaint();
+		try{
+			Thread.sleep(2000);
+			System.out.println("\n");
+		}
+		catch(Exception e){
+			
+		}
+		
+		System.out.println("CLEAR");
+		test.mat_feedforward(data);
+		test.mat_expected = answer;
+		test.mat_backpropagate();
+		test.window.repaint();
+		*/
+	
 	}
 }
