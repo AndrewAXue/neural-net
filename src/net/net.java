@@ -165,7 +165,7 @@ public class net{
 	// Textfield for choosing file name of where to export net
 	JTextField export_text;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
-	boolean drawdev = true;
+	boolean drawdev = false;
 	
 	//Size of VISUALIZATION
 	int visualdim = 900;
@@ -450,7 +450,8 @@ public class net{
 					if (i==0){
 						active.bias=0;
 					}
-					active.avaluematrix = active.zvaluematrix = new double[train_batch_size];
+					active.avaluematrix = new double[train_batch_size];
+					active.zvaluematrix = new double[train_batch_size];
 					active.ypos = distfromtop+k*(visualdim/alllayersize[i]);
 					active.xpos = distfromside+i*(visualdim/alllayersize.length);
 				}	
@@ -974,6 +975,27 @@ public class net{
 		public void mouseReleased(MouseEvent e) {}
 	}
 
+	protected void mat_printvalues(){
+		for (int a=0;a<train_batch_size;a++){
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<alllayersize[i];k++){
+					System.out.print(allnode[i][k].avaluematrix[a]+" ");
+				}
+				System.out.println();
+			}
+			System.out.println("\n");
+		}
+	}
+	
+	protected void printvalues(){
+		for (int i=0;i<numlayer;i++){
+			for (int k=0;k<alllayersize[i];k++){
+				System.out.print(allnode[i][k].zvalue+" ");
+			}
+			System.out.println();
+		}
+		System.out.println("\n");
+	}
 	//Given a list of inputs of the same size as the input layer, feeds the values through the net
 	protected void feedforward(double data[]){
 		// If the amount of input data is different then the number of input nodes, print an error
@@ -996,11 +1018,19 @@ public class net{
 					}
 					active.zvalue = newz+active.bias;
 					active.avalue = sigmoid(active.zvalue);
-					System.out.println(active.avalue+" "+active.zvalue);
 				}
 			}
-			
+			/*
+			for (int i=0;i<numlayer;i++){
+				for (int k=0;k<alllayersize[i];k++){
+					System.out.print(allnode[i][k].avalue+" ");
+				}
+				System.out.println();
+			}
+			System.out.println("\n");
+			*/
 			// if applicable, softmax the output layer for better probability distribution
+			
 			if (softmax){
 				double sum = 0;
 				double expvalues[] =  new double[alllayersize[numlayer-1]];
@@ -1012,6 +1042,7 @@ public class net{
 					allnode[numlayer-1][i].avalue = expvalues[i]/sum;
 				}
 			}
+			
 		}
 	}
 	
@@ -1031,8 +1062,6 @@ public class net{
 					allnode[0][i].zvaluematrix[k] = allnode[0][i].avaluematrix[k] = data[k][i];  
 				}
 			}
-			
-			
 			for (int i=0;i<allweight.length;i++){
 				for (int b=0;b<train_batch_size;b++){
 					for (int k=0;k<allweight[i].length;k++){
@@ -1042,10 +1071,11 @@ public class net{
 							newz+=allnode[i][a].avaluematrix[b]*allweight[i][k][a].weight;
 						}
 						active.zvaluematrix[b] = newz+active.bias;
-						active.avaluematrix[b] = sigmoid(active.zvaluematrix[b]);
-						System.out.println(active.avaluematrix[b]+" "+active.zvaluematrix[b]);
+						active.avaluematrix[b] = sigmoid(newz+active.bias);
 					}
 				}
+				
+				
 				//Prints all values of nodes. Format is
 				//			batch 1   batch 2    batch 3
 				//node 1
@@ -1053,7 +1083,7 @@ public class net{
 				/*
 				for (int k=0;k<alllayersize[i];k++){
 					for (int a=0;a<train_batch_size;a++){
-						System.out.print(allnode[i][k].zvaluematrix[a]+" ");
+						System.out.print(allnode[i][k].avaluematrix[a]+" ");
 					}
 					System.out.println();
 				}
@@ -1062,12 +1092,24 @@ public class net{
 			}
 			
 		
-			//IMPLEMENT SOFTMAX
+			if (softmax){
+				for (int k=0;k<train_batch_size;k++){
+					double sum = 0;
+					double expvalues[] =  new double[alllayersize[numlayer-1]];
+					for (int i=0;i<alllayersize[numlayer-1];i++){
+						expvalues[i] = Math.exp(allnode[numlayer-1][i].zvaluematrix[k]);
+						sum+=expvalues[i];
+					}
+					for (int i=0;i<alllayersize[numlayer-1];i++){
+						allnode[numlayer-1][i].avaluematrix[k] = expvalues[i]/sum;
+					}
+				}
+			}
 			// Prints last layer node values
 			/*
 			for (int k=0;k<alllayersize[numlayer-1];k++){
 				for (int i=0;i<train_batch_size;i++){
-					System.out.print(allnode[numlayer-1][k].zvaluematrix[i]+" ");
+					System.out.print(allnode[numlayer-1][k].avaluematrix[i]+" ");
 				}
 				System.out.println();
 			}
