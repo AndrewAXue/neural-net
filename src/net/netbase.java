@@ -22,9 +22,13 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.Timer;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 
 // Made by Andrew Xue
 // a3xue@edu.uwaterloo.ca
@@ -62,83 +66,140 @@ import java.io.FileWriter;
 public class netbase{
 	
 	//Scanner for CSV file
-	Scanner scanner;
-	
-	//Training data
-	double all_train_data [];
-	
-	//Testing data
-	double all_test_data [];
-	
-	//HYPERPARAMETERS. These should be set when the net is initialized.
-	// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
-	// are slower but steadier
-	double learning_rate;
-	// Choosing which cost function to use (quadratic or cross-entropy at time of writing)
-	boolean quadratic;
-	// Stores the size of each batch for training
-	int batch_size;
-	// Whether to softmax the results
-	boolean softmax;
-	// Whether status updates should be printed;
-	boolean print;
-	// Sets limit for maximum number of nodes per layer displayed in visualization
-	int maxnodes = 6;
-	
-	
-	//VISUALIZATION ASPECTS
-	//Window for VISUALIZATION
-	JFrame window = new JFrame();
-	// Control if VISUALIZATION appears
-	boolean visual = true;
-	
-	//GRAPHING ASPECTS
-	// Used for graphing. Stores the results of testing batches
-	ArrayList<Integer> results = new ArrayList<Integer>();
-	// Denoted the setting. If false, it is on the graphing screen, else it is on the node screen.
-	boolean graphing = false;
-  
-  
-	// Buttons used in the VISUALIZATION
-	JButton graph_button,train_batch_button,feed_button,train_all_batch_button,train_one_button,export_button;
-	// Label for printing status reports
-	JLabel status_text;
-	// Textfield for choosing file name of where to export net
-	JTextField export_text;
-	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
-	boolean drawdev = false;
-	
-	//Size of VISUALIZATION
-	int visualdim = 900;
-	// Distance from the top of the JPanel to the first node in  each layer
-	int distfromtop = 50;
-	// Distance from the side of the panel to the first and last layer
-	int distfromside = 50;
-	// Size of each node
-	int sizenode = 50;
-	
-	
-	//Characteristics of the net
-	//Number of layers and size of each one
-	int numlayer;
-	int alllayersize[];
-	
-	//Randoms for choosing initial values for nodes
-	Random weightchoose = new Random();
-	Random biaschoose = new Random();
-	Random colorpick = new Random();
-	
-	//Properties of each node
-	nodeclass allnode[][];
-	//Weights of all the weights
-	weightclass allweight[][][];
-	
-	//Error of each node (backpropagation)
-	double error[][];
-	//Expected output vector
-	double expected[];
-	//Whether to use automatic testing or not
-	boolean auto = false;
+		Scanner scanner;
+		BufferedReader read;
+		
+		// Random number chooser for shuffling dataset
+		Random shuffle_rand = new Random();
+		
+		//Which data point currently on
+		int data_ind = 0;
+		int epoch_ind = 0;
+		//Training data
+		private class train_data{
+			double solution[] = new double[10];
+			double pixels[] = new double[782];
+			int answer;
+			train_data(double tempsolution[],double temppixels[]){
+				solution = tempsolution;
+				pixels = temppixels;
+			}
+		}
+		train_data all_train_data [] = new train_data[42000];
+		
+		//Testing data
+		double all_test_data [][];
+		
+		public void load_training_data() throws IOException{
+			try {
+				read = new BufferedReader(new FileReader("digit_data/train.csv"));
+			} catch (FileNotFoundException exp) {
+				System.out.println("FILE NOT FOUND!");
+				status_text.setText("FILE NOT FOUND!");
+				exp.printStackTrace();
+			}
+			read.readLine();
+			for (int i=0;i<42000;i++){
+				String string_data[] = read.readLine().split(",");
+				
+				int correct = Integer.parseInt(string_data[0]);
+				double ans[] = {0,0,0,0,0,0,0,0,0,0};
+				ans[correct] = 1;
+				// Set up the input data and feed it through the network
+		    	double doublst[] = new double[784];
+		    	
+		    	for (int a=0;a<784;a++){
+		    		doublst[a] = Double.parseDouble(string_data[a+1])/255.0;
+		    		
+		    		
+		    	}
+		    	
+		    	all_train_data[i] = new train_data(ans,doublst);
+		    	all_train_data[i].answer = correct;
+			}
+			System.out.println("DONE");
+		}
+		
+		//HYPERPARAMETERS. These should be set when the net is initialized.
+		// Learning rate of the net. Higher learning rates lead to quicker results but can "overshoot", lower learning rates
+		// are slower but steadier
+		double learning_rate;
+		// Choosing which cost function to use (quadratic or cross-entropy at time of writing)
+		boolean quadratic;
+		// Whether to softmax the results
+		boolean softmax;
+		// Whether status updates should be printed;
+		boolean print;
+		// Sets limit for maximum number of nodes per layer displayed in visualization
+		int maxnodes = 6;
+		// Sets the number of epochs to be trained;
+		int num_epoch;
+		// The size of training batches
+		int train_batch_size;
+		// The size of testing batches
+		int test_batch_size;
+		
+		
+		//VISUALIZATION ASPECTS
+		//Window for VISUALIZATION
+		JFrame window = new JFrame();
+		// Control if VISUALIZATION appears
+		boolean visual = true;
+		
+		//GRAPHING ASPECTS
+		// Timer for continuously updating the graph with new batches
+		Timer graph_draw = new Timer(0, new actions());
+		// Used for graphing. Stores the results of testing batches
+		int epoch_results [];
+		ArrayList<Integer> batch_results = new ArrayList<Integer>();
+		// Denoted the setting. If false, it is on the graphing screen, else it is on the node screen.
+		boolean graphing = false;
+	  
+	  
+		// Buttons used in the VISUALIZATION
+		JButton graph_button,train_epoch_button,feed_button,train_all_epoch_button,export_button,train_batch_button;
+		// Label for printing status reports
+		JLabel status_text;
+		// Textfield for choosing file name of where to export net
+		JTextField export_text;
+		// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
+		boolean drawdev = false;
+		
+		//Size of VISUALIZATION
+		int visualdim = 900;
+		// Distance from the top of the JPanel to the first node in  each layer
+		int distfromtop = 50;
+		// Distance from the side of the panel to the first and last layer
+		int distfromside = 50;
+		// Size of each node
+		int sizenode = 50;
+		
+		
+		//Characteristics of the net
+		//Number of layers and size of each one
+		int numlayer;
+		int alllayersize[];
+		
+		//Randoms for choosing initial values for nodes
+		Random weightchoose = new Random();
+		Random biaschoose = new Random();
+		Random colorpick = new Random();
+		
+		//Properties of each node
+		nodeclass allnode[][];
+		//Weights of all the weights
+		weightclass allweight[][][];
+		
+		//Error of each node (backpropagation)
+		double error[][];
+		//Matrix error of each node
+		double mat_error[][][];
+		//Expected output vector
+		double expected[];
+		//Expected output matrix
+		double mat_expected[][];
+		//Whether to use automatic testing or not
+		boolean auto = false;
 	
 	// sigmoid function for "smoothing out" the output values
 	double sigmoid(double x){
@@ -236,12 +297,19 @@ public class netbase{
 	netbase(String file) throws FileNotFoundException{
 		// Drawing the partial derivatives is automatically suppressed to increase efficiency
 		drawdev = false;
-		Scanner scanner = new Scanner(new File(file));
+		Scanner net_scanner = null;
+		try{
+			net_scanner = new Scanner(new File(file));
+		}
+		catch(FileNotFoundException exp){
+			System.out.println("File not found!");
+			exp.printStackTrace();
+		}
 		// First line contains the number of layers
-		String tempnumlayers = scanner.nextLine();
+		String tempnumlayers = net_scanner.nextLine();
 		numlayer = Character.getNumericValue(tempnumlayers.charAt(0));
 		// Next line contains the size of each of the layers
-		String[] layersizes = scanner.nextLine().split(" ");
+		String[] layersizes = net_scanner.nextLine().split(" ");
 		
 		// Setting up array with all the sizes of the layers
 		alllayersize = new int[numlayer];
@@ -249,13 +317,13 @@ public class netbase{
 			alllayersize[i] = Integer.parseInt(layersizes[i]);
 		}
 		allnode = new nodeclass[numlayer][];
-		System.out.println("Taking "+scanner.nextLine());
-		scanner.nextLine();
+		System.out.println("Taking "+net_scanner.nextLine());
+		net_scanner.nextLine();
 		// Taking in node properties from the file
 		for (int i=0;i<numlayer;i++){
 			allnode[i] = new nodeclass[alllayersize[i]];
 			for (int k=0;k<alllayersize[i];k++){
-				String nodeprop[] = scanner.nextLine().split(" ");
+				String nodeprop[] = net_scanner.nextLine().split(" ");
 				nodeclass active;
 				allnode[i][k] = active = new nodeclass();
 				active.bias = Double.parseDouble(nodeprop[0]);
@@ -269,27 +337,25 @@ public class netbase{
 				}
 			}
 		}
-		System.out.println("Taking "+scanner.nextLine());
+		System.out.println("Taking "+net_scanner.nextLine());
 		//Initializing array of matrices that stores all the weights
 		allweight = new weightclass[alllayersize.length-1][][];
 		for (int i=1;i<alllayersize.length;i++){
 			allweight[i-1] = new weightclass[alllayersize[i]][alllayersize[i-1]];
 			for (int k=0;k<alllayersize[i];k++){
-				String tempweight[] = scanner.nextLine().split(" ");
+				String tempweight[] = net_scanner.nextLine().split(" ");
 				for (int l=0;l<alllayersize[i-1];l++){
 					allweight[i-1][k][l] = new weightclass();
 					allweight[i-1][k][l].weight = Double.parseDouble(tempweight[l]);
 				}
 			}
 		}
-		scanner.close();
-		
+		net_scanner.close();
 	}
 	
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	netbase(int arr[]){
-		
 		alllayersize = arr;
 		numlayer = arr.length;
 		// Creating an error matrix
@@ -397,36 +463,39 @@ public class netbase{
 		cons.insets = new Insets(0,0,0,0);		
 		everything.add(visuals,cons);
 		
-		//Currently just filling portions of the window to be used in the future for stats and buttons
 		
+		//JPanel for all the buttons. 
 		JPanel buttons = new JPanel();
 		graph_button = new JButton("GRAPH!");
-		graph_button.addActionListener(new act());
+		graph_button.addActionListener(new actions());
+		graph_button.setToolTipText("Switch to graph view");
 		buttons.add(graph_button);
 		
-		
 		feed_button = new JButton("FEED!");
-		feed_button.addActionListener(new act());
+		feed_button.addActionListener(new actions());
 		buttons.add(feed_button);
 		
-		train_one_button = new JButton("TRAIN ONE!");
-		train_one_button.addActionListener(new act());
-		buttons.add(train_one_button);
-		
 		train_batch_button = new JButton("TRAIN BATCH!");
-		train_batch_button.addActionListener(new act());
+		train_batch_button.addActionListener(new actions());
 		buttons.add(train_batch_button);
 		
-		train_all_batch_button =  new JButton("TRAIN ALL BATCHES!");
-		train_all_batch_button.addActionListener(new act());
-		buttons.add(train_all_batch_button);
+		train_epoch_button = new JButton("TRAIN EPOCH!");
+		train_epoch_button.addActionListener(new actions());
+		buttons.add(train_epoch_button);
+		
+		train_all_epoch_button =  new JButton("TRAIN ALL EPOCHS!");
+		train_all_epoch_button.addActionListener(new actions());
+		buttons.add(train_all_epoch_button);
 		
 		export_text = new JTextField();
-		export_text.setColumns(8);
+		export_text.addActionListener(new actions());
+		export_text.setColumns(15);
+		export_text.setText("trained_net");
 		buttons.add(export_text);
 		
 		export_button = new JButton("EXPORT!");
-		export_button.addActionListener(new act());
+		export_button.addActionListener(new actions());
+		export_button.setToolTipText("Exports the net to the given file name on the left. Should be used on a trained net");
 		buttons.add(export_button);
 		
 		buttons.setBackground(Color.PINK);
@@ -442,7 +511,7 @@ public class netbase{
 		cons.insets = new Insets(0,0,0,0);
 		everything.add(buttons,cons);
 		
-		
+		// Currently just a filler for some area below the visualization
 		JPanel downfill = new JPanel();
 		status_text = new JLabel("VISUALIZATION");
 		status_text.setForeground(Color.WHITE);
@@ -462,7 +531,7 @@ public class netbase{
 		cons.insets = new Insets(0,0,0,0);
 		everything.add(downfill,cons);
 		
-		
+		// Currently just a filler for some are on the right of the visualization
 		JPanel rightfill = new JPanel();
 		rightfill.setBackground(Color.ORANGE);
 	
@@ -484,40 +553,51 @@ public class netbase{
 	
 	
 	// Preform different actions depending on the button pressed
-	public class act implements ActionListener{
-		public void actionPerformed(ActionEvent e) {
-			if (e.getSource() == train_one_button){
-				//TODO
+	public class actions implements ActionListener{
+		public void actionPerformed(ActionEvent action) {
+			if (action.getSource() == train_batch_button){
 			}
-			else if (e.getSource() == train_batch_button){
-				//TODO
+			if (action.getSource() == train_epoch_button){
 			}
-			else if (e.getSource() == train_all_batch_button){
-				//TODO
+			else if (action.getSource() == train_all_epoch_button){
 			}
-			else if (e.getSource() == graph_button){
+			else if (action.getSource() == graph_button){
+				// Toggle the graphing boolean
 				graphing = !graphing;
+				// Depending on if the graphing boolean is now true, change the text of the button
 				if (graphing){
 					graph_button.setText("NET!");
+					graph_button.setToolTipText("Switch to net view");
 				}
 				else{
 					graph_button.setText("GRAPH!");
+					graph_button.setToolTipText("Switch to graph view");
 				}
 				window.repaint();
 			}
-			else if (e.getSource() == export_button){
+			else if (action.getSource() == export_button){
+				// When the export button is clicked, create and export to the file name provided by the textfield
 				String file_name = export_text.getText();
 				if (file_name.length()!=0){
 					export_net(file_name+".txt");
 					System.out.println("Exported successfully to "+file_name+".txt");
 					status_text.setText("Exported successfully to "+file_name+".txt");
 				}
+				else{
+					System.out.println("File name cannot be empty!");
+					status_text.setText("File name cannot be empty!");
+				}
+			}
+			else if (action.getSource() == graph_draw){
+			}
+			else if (action.getSource() == export_text){
+				export_button.doClick();
 			}
 		}
 	}
-	
-	// Graphics aspect of the framework
+
 	private class VISUALIZATION extends JComponent {
+		
 		VISUALIZATION() {
             setPreferredSize(new Dimension(visualdim, visualdim));
         }
@@ -555,9 +635,7 @@ public class netbase{
 								}
 							}
 						}
-						
 					}
-					
 				}
 				//Drawing nodes
 				for (int i=0;i<alllayersize.length;i++){
@@ -594,10 +672,10 @@ public class netbase{
 				grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
 				grap.drawString("Batch", visualdim-distfromside-50, visualdim-distfromtop);
 				grap.drawString("0", distfromside, visualdim-distfromtop+20);
-				grap.drawString(results.size()/4+"", distfromside+200, visualdim-distfromtop+20);
-				grap.drawString(2*results.size()/4+"", distfromside+400, visualdim-distfromtop+20);
-				grap.drawString(3*results.size()/4+"", distfromside+600, visualdim-distfromtop+20);
-				grap.drawString(results.size()+"", distfromside+800, visualdim-distfromtop+20);
+				grap.drawString(num_epoch/4+"", distfromside+200, visualdim-distfromtop+20);
+				grap.drawString(2*num_epoch/4+"", distfromside+400, visualdim-distfromtop+20);
+				grap.drawString(3*num_epoch/4+"", distfromside+600, visualdim-distfromtop+20);
+				grap.drawString(num_epoch+"", distfromside+800, visualdim-distfromtop+20);
 				grap.drawString("Accuracy (%)", distfromside, visualdim-distfromtop-800+5);
 				grap.drawString("0", distfromside-15, visualdim-distfromtop+5);
 				grap.drawString("25", distfromside-25, visualdim-distfromtop-200+5);
@@ -605,14 +683,18 @@ public class netbase{
 				grap.drawString("75", distfromside-25, visualdim-distfromtop-600+5);
 				grap.drawString("100", distfromside-35, visualdim-distfromtop-800+5);
 				// Ratios used to even spread out data points among available space
-				double xratio = 800/(double)results.size();
-				double yratio = 800/(double)batch_size;
-				if (results.size()!=0&&results.get(results.size()-1)==-1){
-					results.remove(results.size()-1);
-				}
+				double xratio = 800/(double)num_epoch;
+				double yratio = 800/(double)test_batch_size;
 				// Draws a line graph between all data points (which are the accuracy of each batch)
-				for (int i=1;i<results.size();i++){
-					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(results.get(i-1)*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (results.get(i)*yratio));
+				for (int i=1;i<num_epoch;i++){
+					if (epoch_results[i]==-1)break;
+					if (i%2==0){
+						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)-5);
+					}
+					else{
+						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)+15);
+					}
+					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(epoch_results[i-1]*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (epoch_results[i]*yratio));
 				}
 			}
 		}
@@ -637,6 +719,7 @@ public class netbase{
 	protected void export_net(String file){
 		try{
 			FileWriter write = new FileWriter(file);
+			// Writing the hyperparameters of the net, number of layers, learning rate, cost functions used, etc.
 			write.append(numlayer+" layers "+" learning rate: "+learning_rate);
 			if (quadratic){
 				write.append(" quadratic ");
@@ -647,13 +730,15 @@ public class netbase{
 			else{
 				write.append(" cross-entropy ");
 			}
-			write.append(" batch size "+batch_size);
+			write.append(" training batch size "+train_batch_size+" testing batch size "+test_batch_size);
+			write.append(" "+epoch_ind+" epochs run");
 			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
 			}
 			write.append('\n');
 			write.append("Node properties\nFormat is bias then x and y coordinates then drawnode\n");
+			// Printing characteristics of the nodes
 			for (int i=0;i<numlayer;i++){
 				for (int k=0;k<alllayersize[i];k++){
 					nodeclass active = allnode[i][k];
@@ -666,6 +751,7 @@ public class netbase{
 					}
 				}
 			}
+			// Printing the characteristics of all the weights
 			write.append("Weight properties\n");
 			for (int i=0;i<allweight.length;i++){
 				for (int k=0;k<allweight[i].length;k++){
@@ -677,6 +763,7 @@ public class netbase{
 			}
 			write.close();
 		}
+		// If the file does not exist or there is some other error, report it
 		catch (Exception e){
 			System.out.println("Error writing to file");
 			status_text.setText("Error writing to file");
@@ -744,44 +831,44 @@ public class netbase{
 	}
 
 	//Given a list of inputs of the same size as the input layer, feeds the values through the net
-		protected void feedforward(double data[]){
-			// If the amount of input data is different then the number of input nodes, print an error
-			if (data.length!=alllayersize[0]){
-				System.out.println("ERROR: Input layer size different then number of inputs");
-				status_text.setText("ERROR: Input layer size different then number of inputs");
+	protected void feedforward(double data[]){
+		// If the amount of input data is different then the number of input nodes, print an error
+		if (data.length!=alllayersize[0]){
+			System.out.println("ERROR: Input layer size different then number of inputs");
+			status_text.setText("ERROR: Input layer size different then number of inputs");
+		}
+		else{
+			// Set the input layer to the data received
+			for (int i=0;i<alllayersize[0];i++){
+				allnode[0][i].avalue = allnode[0][i].zvalue = data[i];
 			}
-			else{
-				// Set the input layer to the data received
-				for (int i=0;i<alllayersize[0];i++){
-					allnode[0][i].avalue = allnode[0][i].zvalue = data[i];
+			// Feed the data forward layer by layer
+			for (int i=0;i<allweight.length;i++){
+				for (int k=0;k<allweight[i].length;k++){
+					double newz = 0;
+					nodeclass active = allnode[i+1][k];
+					for (int a=0;a<allweight[i][0].length;a++){
+						newz+=allnode[i][a].avalue*allweight[i][k][a].weight;
+					}
+					active.zvalue = newz+active.bias;
+					active.avalue = sigmoid(active.zvalue);
 				}
-				// Feed the data forward layer by layer
-				for (int i=0;i<allweight.length;i++){
-					for (int k=0;k<allweight[i].length;k++){
-						double newz = 0;
-						nodeclass active = allnode[i+1][k];
-						for (int a=0;a<allweight[i][0].length;a++){
-							newz+=allnode[i][a].avalue*allweight[i][k][a].weight;
-						}
-						active.zvalue = newz+active.bias;
-						active.avalue = sigmoid(active.zvalue);
-					}
+			}
+			// if applicable, softmax the output layer for better probability distribution
+			if (softmax){
+				double sum = 0;
+				double expvalues[] =  new double[alllayersize[numlayer-1]];
+				for (int i=0;i<alllayersize[numlayer-1];i++){
+					expvalues[i] = Math.exp(allnode[numlayer-1][i].zvalue);
+					sum+=expvalues[i];
+				
 				}
-				// if applicable, softmax the output layer for better probability distribution
-				if (softmax){
-					double sum = 0;
-					double expvalues[] =  new double[alllayersize[numlayer-1]];
-					for (int i=0;i<alllayersize[numlayer-1];i++){
-						expvalues[i] = Math.exp(allnode[numlayer-1][i].zvalue);
-						sum+=expvalues[i];
-					
-					}
-					for (int i=0;i<alllayersize[numlayer-1];i++){
-						allnode[numlayer-1][i].avalue = expvalues[i]/sum;
-					}
+				for (int i=0;i<alllayersize[numlayer-1];i++){
+					allnode[numlayer-1][i].avalue = expvalues[i]/sum;
 				}
 			}
 		}
+	}
 	
 	//Work in progress matrix matrix multiplication. The function would not be much quicker as more advanced
 	//linear algebra theorums would have to be used to really see an impact.

@@ -84,7 +84,7 @@ public class testing {
 		test.test_batch_size = 10000;
 		test.learning_rate = 3;
 		test.quadratic = false;
-		test.softmax = false;
+		test.softmax = true;
 		test.num_epoch = 30;
 		
 		test.initialize_values();
@@ -153,6 +153,10 @@ public class testing {
 		test.mat_backpropagate();
 		test.window.repaint();
 		*/
-	
+		/*
+		int temp[] = {2,2,1};
+		netbase test = new netbase(temp);
+		test.create_window();
+	*/
 	}
 }
