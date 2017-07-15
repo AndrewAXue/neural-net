@@ -836,7 +836,10 @@ public class net{
 		int batch=0;
 		data_ind=0;
 		while(learn_batch(train_batch_size)!=-1){
-			if (batch%100==0) System.out.println("Batch: "+batch);
+			
+			if (batch%100==0) {
+				System.out.println("Batch: "+batch);
+			}
 			batch++;  
 		}
 	}
@@ -845,6 +848,7 @@ public class net{
 	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
 	// numbers classified correctly in the batch. Backpropagates for every step.
 	protected int learn_batch(int batch_size){
+		long startTime = System.nanoTime();
 		int corr=0;
 		for (int i=0;i<batch_size;i++){
 			int result = feed_and_set_expected(false);
@@ -852,23 +856,28 @@ public class net{
 			corr+=result;
 			backpropagate();
 		}
+		
 		// After all the errors of the batch have been backpropagated, gradient_descent is called in order for the net to
 		// learn
+		
 		gradient_descent(batch_size);
+		long endTime   = System.nanoTime();
+		long totalTime = endTime - startTime;
+		System.out.println("Runtime is "+totalTime);
 		return corr;
 	}
 	
 	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
-		// numbers classified correctly in the batch. Backpropagates for every step.
-		protected int test_batch(int batch_size){
-			int corr=0;
-			for (int i=0;i<batch_size;i++){
-				int result = feed_and_set_expected(false);
-				if (result==-1)return -1;
-				corr+=result;
-			}
-			return corr;
+	// numbers classified correctly in the batch. Backpropagates for every step.
+	protected int test_batch(int batch_size){
+		int corr=0;
+		for (int i=0;i<batch_size;i++){
+			int result = feed_and_set_expected(false);
+			if (result==-1)return -1;
+			corr+=result;
 		}
+		return corr;
+	}
 	
 	// Created to ensure same input used for automatic and manual testing. Simply feeds forward values
 	// and returns a "1" if the actual and expected are the same. Can also print the expected and actual
@@ -1019,10 +1028,13 @@ public class net{
 				nodeclass active = allnode[i][k];
 				double sigmoidprime = sigmoidprime(active.zvalue);
 				for (int a=0;a<allweight[i].length;a++){
-					newerror+=allweight[i][a][k].weight*error[i+1][a]*sigmoidprime;
+					weightclass temp = allweight[i][a][k];
+					double errortemp = error[i+1][a];
+					newerror+=temp.weight*errortemp;
 					//BP4
-					allweight[i][a][k].weightdev += active.avalue*error[i+1][a];	
+					temp.weightdev += active.avalue*errortemp;	
 				}
+				newerror*=sigmoidprime;
 				error[i][k] = newerror;
 				//BP3
 				active.biasdev += newerror;
