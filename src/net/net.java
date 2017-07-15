@@ -193,12 +193,8 @@ public class net{
 	
 	//Error of each node (backpropagation)
 	double error[][];
-	//Matrix error of each node
-	double mat_error[][][];
 	//Expected output vector
 	double expected[];
-	//Expected output matrix
-	double mat_expected[][];
 	//Whether to use automatic testing or not
 	boolean auto = false;
 	
@@ -231,15 +227,13 @@ public class net{
 	protected class nodeclass{
 		double bias = 0;
 		double biasdev = 0;
-		double zvaluematrix[];
-		double avaluematrix[];
 		//Weighted sum of all the inputed + bias of the node
 		double zvalue = 0;
 		//avalue is the output of the node and by definition avalue = sigmoid(zvalue)
 		double avalue = 0;
 		
 		//Whether weight value and weight dev should be drawn
-		boolean drawweight=true;
+		boolean drawweight;
 		//Whether node should be drawn
 		boolean drawnode=false;
 		//Stores x and y coordinates of visualization for the node
@@ -410,11 +404,6 @@ public class net{
 		for (int i=0;i<numlayer;i++){
 			error[i] = new double[alllayersize[i]];
 		}
-		// Creating an error matrix
-		mat_error = new double[numlayer][][];
-		for (int i=0;i<numlayer;i++){
-			mat_error[i] = new double[alllayersize[i]][train_batch_size];
-		}
 		//Initializing array of matrices that stores all the weights
 		allweight = new weightclass[alllayersize.length-1][][];
 		for (int i=1;i<alllayersize.length;i++){
@@ -451,8 +440,6 @@ public class net{
 					if (i==0){
 						active.bias=0;
 					}
-					active.avaluematrix = new double[train_batch_size];
-					active.zvaluematrix = new double[train_batch_size];
 					active.ypos = distfromtop+k*(visualdim/alllayersize[i]);
 					active.xpos = distfromside+i*(visualdim/alllayersize.length);
 				}	
@@ -467,7 +454,6 @@ public class net{
 					if (i==0){
 						active.bias=0;
 					}
-					active.avaluematrix = active.zvaluematrix = new double[train_batch_size];
 				}
 				for (int k=0;k<maxnodes;k++){
 					allnode[i][k*interval].drawnode=true;
@@ -477,7 +463,6 @@ public class net{
 			}
 		}
 		
-		// Setting up matrix multiplication arrays
 		// Setting up array for storing results of testing after each epoch
 		epoch_results = new int[num_epoch];
 		for (int i=0;i<num_epoch;i++){
@@ -623,7 +608,7 @@ public class net{
 		public void actionPerformed(ActionEvent action) {
 			if (action.getSource() == train_batch_button){
 				for (int i=0;i<4200;i++){
-					int result = mat_learn_batch(false);
+					int result = learn_batch(train_batch_size);
 					System.out.println(result);
 				}
 			}
@@ -850,7 +835,6 @@ public class net{
 		shuffle(all_train_data);
 		int batch=0;
 		data_ind=0;
-		//while(mat_learn_batch(false)!=-1){
 		while(learn_batch(train_batch_size)!=-1){
 			if (batch%100==0) System.out.println("Batch: "+batch);
 			batch++;  
@@ -914,44 +898,6 @@ public class net{
 		return 0;
 	}
 	
-	// Same as feed_and_set_expected except feeds a whole batch
-	public int mat_learn_batch(boolean printresults){
-		// If there is no more data, return an error value
-		if (data_ind+train_batch_size>=all_train_data.length)return -1;
-		
-		double feeddata[][] = new double[train_batch_size][];
-		mat_expected = new double[train_batch_size][];
-		for (int i=0;i<train_batch_size;i++){
-			feeddata[i] = all_train_data[data_ind+i].pixels;
-			mat_expected[i] = all_train_data[data_ind+i].solution;
-		}
-		mat_feedforward(feeddata);
-		
-		double result[][] = mat_getoutput();
-		int correct=0;
-		for (int i=0;i<train_batch_size;i++){
-			int maxind=0;
-			for (int k=0;k<alllayersize[numlayer-1];k++){
-				if (result[i][k]>result[i][maxind]){
-					maxind = i;
-				}
-			}
-			// If the actual and expected values are the same, return 1
-			if (maxind==all_train_data[data_ind+i].answer){
-				correct++;
-			}
-		}
-		data_ind+=train_batch_size;
-		// If applicable, print out the number correct
-		if (printresults){
-			System.out.println(correct+" correct out of "+train_batch_size);
-			status_text.setText(correct+" correct out of "+train_batch_size);
-		}
-		mat_backpropagate();
-		gradient_descent(train_batch_size);
-		return correct;
-	}
-	
 	private class mouseevent implements MouseListener{
 		// Toggles whether the weights of a certain node should be shown. Done by clicking the node.
 		public void mouseClicked(MouseEvent e) {
@@ -976,18 +922,6 @@ public class net{
 		public void mouseReleased(MouseEvent e) {}
 	}
 
-	protected void mat_printvalues(){
-		for (int a=0;a<train_batch_size;a++){
-			for (int i=0;i<numlayer;i++){
-				for (int k=0;k<alllayersize[i];k++){
-					System.out.print(allnode[i][k].avaluematrix[a]+" ");
-				}
-				System.out.println();
-			}
-			System.out.println("\n");
-		}
-	}
-	
 	protected void printvalues(){
 		for (int i=0;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
@@ -1047,77 +981,6 @@ public class net{
 		}
 	}
 	
-	//Work in progress matrix matrix multiplication. The function would not be much quicker as more advanced
-	//linear algebra theorums would have to be used to really see an impact.
-	
-	protected void mat_feedforward(double data[][]){
-		// Setting input layer to the data received
-
-		if (alllayersize[0]!=data[0].length){
-			System.out.println("ERROR: Input layer size different then number of inputs");
-			status_text.setText("ERROR: Input layer size different then number of inputs");
-		}
-		else{
-			for (int i=0;i<alllayersize[0];i++){
-				for (int k=0;k<train_batch_size;k++){
-					allnode[0][i].zvaluematrix[k] = allnode[0][i].avaluematrix[k] = data[k][i];  
-				}
-			}
-			for (int i=0;i<allweight.length;i++){
-				for (int b=0;b<train_batch_size;b++){
-					for (int k=0;k<allweight[i].length;k++){
-						double newz = 0;
-						nodeclass active = allnode[i+1][k];
-						for (int a=0;a<allweight[i][0].length;a++){
-							newz+=allnode[i][a].avaluematrix[b]*allweight[i][k][a].weight;
-						}
-						active.zvaluematrix[b] = newz+active.bias;
-						active.avaluematrix[b] = sigmoid(newz+active.bias);
-					}
-				}
-				
-				
-				//Prints all values of nodes. Format is
-				//			batch 1   batch 2    batch 3
-				//node 1
-				//node 2
-				/*
-				for (int k=0;k<alllayersize[i];k++){
-					for (int a=0;a<train_batch_size;a++){
-						System.out.print(allnode[i][k].avaluematrix[a]+" ");
-					}
-					System.out.println();
-				}
-				System.out.println("\n\n");
-				*/
-			}
-			
-		
-			if (softmax){
-				for (int k=0;k<train_batch_size;k++){
-					double sum = 0;
-					double expvalues[] =  new double[alllayersize[numlayer-1]];
-					for (int i=0;i<alllayersize[numlayer-1];i++){
-						expvalues[i] = Math.exp(allnode[numlayer-1][i].zvaluematrix[k]);
-						sum+=expvalues[i];
-					}
-					for (int i=0;i<alllayersize[numlayer-1];i++){
-						allnode[numlayer-1][i].avaluematrix[k] = expvalues[i]/sum;
-					}
-				}
-			}
-			// Prints last layer node values
-			/*
-			for (int k=0;k<alllayersize[numlayer-1];k++){
-				for (int i=0;i<train_batch_size;i++){
-					System.out.print(allnode[numlayer-1][k].avaluematrix[i]+" ");
-				}
-				System.out.println();
-			}
-			*/
-		}
-	}
-	
 	
 	//Returns the output layer of the net. Should be called after a feedforward is called.
 	protected double[] getoutput(){
@@ -1125,26 +988,6 @@ public class net{
 		for (int i=0;i<alllayersize[alllayersize.length-1];i++){
 			output[i] = allnode[alllayersize.length-1][i].avalue;
 		}
-		return output;
-	}
-	
-	//Returns the output matrix of the net. Should be called after a feedforward is called.
-	protected double[][] mat_getoutput(){
-		double output[][] = new double[train_batch_size][alllayersize[numlayer-1]];
-		for (int k=0;k<train_batch_size;k++){
-			for (int i=0;i<alllayersize[numlayer-1];i++){
-				output[k][i] = allnode[numlayer-1][i].avaluematrix[k];
-			}
-		}
-		//Prints out the output
-		/*
-		for (int k=0;k<alllayersize[numlayer-1];k++){
-			for (int i=0;i<train_batch_size;i++){
-				System.out.print(allnode[numlayer-1][k].avaluematrix[i]+" ");
-			}
-			System.out.println();
-		}
-		*/
 		return output;
 	}
 	
@@ -1184,44 +1027,6 @@ public class net{
 				//BP3
 				active.biasdev += newerror;
 			}
-		}
-	}
-	
-	protected void mat_backpropagate(){
-		//System.out.println("\n");
- 		//BP1
-		if (mat_expected==null){
-			throw new NullPointerException("\nExpected array is empty! This is caused when backpropagate is called before the array of expected value is set");
-		}
-		
-		for (int i=0;i<alllayersize[numlayer-1];i++){
-			for (int k=0;k<train_batch_size;k++){
-				if (quadratic) mat_error[numlayer-1][i][k] = (allnode[numlayer-1][i].avaluematrix[k]-mat_expected[k][i])*sigmoidprime(allnode[numlayer-1][i].zvaluematrix[k]);
-				//cross entropy and log-likelihood has the same derivative with respect to avalue
-				else if (softmax||!quadratic) mat_error[numlayer-1][i][k] = allnode[numlayer-1][i].avaluematrix[k]-mat_expected[k][i];
-				allnode[numlayer-1][i].biasdev += mat_error[numlayer-1][i][k];
-			//	System.out.println(allnode[numlayer-1][i].zvaluematrix[k]);
-			}
-			
-		}
-		expected = null;
-		//BP2
-		for (int i=allweight.length-1;i>=0;i--){
-			for (int k=0;k<allweight[i][0].length;k++){
-				for (int b=0;b<train_batch_size;b++){
-					double newerror=0;
-					nodeclass active = allnode[i][k];
-					double sigmoidprime = sigmoidprime(active.zvaluematrix[b]);
-					for (int a=0;a<allweight[i].length;a++){
-						newerror+=allweight[i][a][k].weight*mat_error[i+1][a][b]*sigmoidprime;
-						//BP4
-						allweight[i][a][k].weightdev += active.avaluematrix[b]*mat_error[i+1][a][b];	
-					}
-					mat_error[i][k][b] = newerror;
-					//BP3
-					active.biasdev += newerror;
-				}
-			}	
 		}
 	}
 	
