@@ -848,7 +848,6 @@ public class net{
 	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
 	// numbers classified correctly in the batch. Backpropagates for every step.
 	protected int learn_batch(int batch_size){
-		long startTime = System.nanoTime();
 		int corr=0;
 		for (int i=0;i<batch_size;i++){
 			int result = feed_and_set_expected(false);
@@ -861,9 +860,6 @@ public class net{
 		// learn
 		
 		gradient_descent(batch_size);
-		long endTime   = System.nanoTime();
-		long totalTime = endTime - startTime;
-		System.out.println("Runtime is "+totalTime);
 		return corr;
 	}
 	
@@ -1013,33 +1009,57 @@ public class net{
 		if (expected==null){
 			throw new NullPointerException("\nExpected array is empty! This is caused when backpropagate is called before the array of expected value is set");
 		}
+		
+		for (int i=0;i<numlayer;i++){
+			for (int k=0;k<alllayersize[i];k++){
+				error[i][k]=0;
+			}
+		}
 		for (int i=0;i<alllayersize[numlayer-1];i++){
-			if (quadratic) error[numlayer-1][i] = (allnode[numlayer-1][i].avalue-expected[i])*sigmoidprime(allnode[numlayer-1][i].zvalue);
+			nodeclass active = allnode[numlayer-1][i];
+			double expect = expected[i];
+			if (quadratic) error[numlayer-1][i] = (active.avalue-expect)*sigmoidprime(active.zvalue);
 			//cross entropy and log-likelihood has the same derivative with respect to avalue
-			else if (softmax||!quadratic) error[numlayer-1][i] = allnode[numlayer-1][i].avalue-expected[i];
-			allnode[numlayer-1][i].biasdev += error[numlayer-1][i];
+			else if (softmax||!quadratic) error[numlayer-1][i] = active.avalue-expect;
+			active.biasdev += error[numlayer-1][i];
 			//System.out.println(allnode[numlayer-1][i].zvalue);
 		}
 		expected = null;
 		//BP2
+		/*
 		for (int i=allweight.length-1;i>=0;i--){
 			for (int k=0;k<allweight[i][0].length;k++){
 				double newerror=0;
 				nodeclass active = allnode[i][k];
-				double sigmoidprime = sigmoidprime(active.zvalue);
 				for (int a=0;a<allweight[i].length;a++){
-					weightclass temp = allweight[i][a][k];
-					double errortemp = error[i+1][a];
-					newerror+=temp.weight*errortemp;
+					double temperror = error[i+1][a];
+					newerror+=allweight[i][a][k].weight*temperror;
 					//BP4
-					temp.weightdev += active.avalue*errortemp;	
+					allweight[i][a][k].weightdev += active.avalue*temperror;	
 				}
-				newerror*=sigmoidprime;
+				newerror*=sigmoidprime(active.zvalue);
 				error[i][k] = newerror;
 				//BP3
 				active.biasdev += newerror;
 			}
 		}
+		*/
+		
+		for (int i=allweight.length-1;i>=0;i--){
+			for (int k=0;k<allweight[i].length;k++){
+				double temperror = error[i+1][k];
+				for (int a=0;a<allweight[i][0].length;a++){
+					error[i][a]+=temperror*allweight[i][k][a].weight;
+					allweight[i][k][a].weightdev+=temperror*allnode[i][a].avalue;
+				}
+			}
+			for (int k=0;k<allweight[i][0].length;k++){
+				error[i][k]*=sigmoidprime(allnode[i][k].zvalue);
+				allnode[i][k].biasdev = error[i][k];
+			}	
+		}
+		
+		
 	}
 	
 	// Adjusts all the weights and biases using (stochastic) gradient descent. Must be called after back-
