@@ -76,6 +76,8 @@ public class net{
 	//Which data point currently on
 	int data_ind = 0;
 	int epoch_ind = 0;
+	//Number of batches tested
+	int batch=0;
 	//Training data
 	private class train_data{
 		double solution[] = new double[10];
@@ -150,6 +152,7 @@ public class net{
 	//GRAPHING ASPECTS
 	// Timer for continuously updating the graph with new batches
 	Timer graph_draw = new Timer(0, new actions());
+	Timer epoch_timer = new Timer(0, new actions());
 	// Used for graphing. Stores the results of testing batches
 	int epoch_results [];
 	ArrayList<Integer> batch_results = new ArrayList<Integer>();
@@ -160,7 +163,7 @@ public class net{
 	// Buttons used in the VISUALIZATION
 	JButton graph_button,train_epoch_button,feed_button,train_all_epoch_button,export_button,train_batch_button;
 	// Label for printing status reports
-	JLabel status_text;
+	JLabel status_text,batch_text;
 	// Textfield for choosing file name of where to export net
 	JTextField export_text;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
@@ -749,8 +752,12 @@ public class net{
 						
 					}
 				}
+				//Drawing batch number indicator
+			//	grap.drawString("Batch: "+batch, 400, 20);
 			}
 			else{
+				//Drawing batch number indicator
+			//	grap.drawString("Batch: "+batch, 400, 20);
 				// Creating the axis and axis labels
 				grap.drawLine(distfromside, visualdim-distfromtop, visualdim-distfromside, visualdim-distfromtop);
 				grap.drawLine(distfromside, visualdim-distfromtop, distfromside, distfromtop);
@@ -833,14 +840,22 @@ public class net{
 	// Train through an epoch of data and apply backpropagation for each mini batch trained.
 	protected void train_epoch(){
 		shuffle(all_train_data);
-		int batch=0;
+		int numbatch=0;
 		data_ind=0;
+		//long startTime = System.nanoTime();
 		while(learn_batch(train_batch_size)!=-1){
-			
-			if (batch%100==0) {
-				System.out.println("Batch: "+batch);
+			if (numbatch%100==0) {
+				batch = numbatch;
+				System.out.println("Batch: "+numbatch);
+				window.repaint();
+				/*
+				long endTime   = System.nanoTime();
+				long totalTime = endTime - startTime;
+				System.out.println("Runtime is "+totalTime);
+				startTime = System.nanoTime();
+				*/
 			}
-			batch++;  
+			numbatch++;  
 		}
 	}
 	
@@ -1085,5 +1100,21 @@ public class net{
 		//Currently being done in line
 		//cleardev();
 		window.repaint();
+	}
+	
+	public static void main(String[] args) throws IOException {
+		int temp[] = {784,70,10};
+		net test = new net(temp);
+		
+		test.load_training_data();
+		test.train_batch_size = 10;
+		test.test_batch_size = 10000;
+		test.learning_rate = 3;
+		test.quadratic = false;
+		test.softmax = true;
+		test.num_epoch = 30;
+
+		test.initialize_values();
+		test.create_window();
 	}
 }
