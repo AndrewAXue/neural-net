@@ -88,12 +88,17 @@ public class net{
 			pixels = temppixels;
 		}
 	}
-	train_data all_train_data [] = new train_data[42000];
+	// Array containing all of the training data
+	train_data all_train_data [] = new train_data[32000];
+	
+	// Array containing some data used for validation
+	train_data validation_data [] = new train_data[10000];
 	
 	//Testing data
 	double all_test_data [][];
 	
-	public void load_training_data() throws IOException{
+	// Loads all the training data
+	public void load_training_and_validation_data() throws IOException{
 		try {
 			read = new BufferedReader(new FileReader("digit_data/train.csv"));
 		} catch (FileNotFoundException exp) {
@@ -102,7 +107,7 @@ public class net{
 			exp.printStackTrace();
 		}
 		read.readLine();
-		for (int i=0;i<42000;i++){
+		for (int i=0;i<32000;i++){
 			String string_data[] = read.readLine().split(",");
 			
 			int correct = Integer.parseInt(string_data[0]);
@@ -112,15 +117,26 @@ public class net{
 	    	double doublst[] = new double[784];
 	    	
 	    	for (int a=0;a<784;a++){
-	    		doublst[a] = Double.parseDouble(string_data[a+1])/255.0;
-	    		
-	    		
+	    		doublst[a] = Double.parseDouble(string_data[a+1])/255.0;	
 	    	}
-	    	
 	    	all_train_data[i] = new train_data(ans,doublst);
 	    	all_train_data[i].answer = correct;
 		}
-		System.out.println("DONE");
+		for (int i=0;i<10000;i++){
+			String string_data[] = read.readLine().split(",");
+			int correct = Integer.parseInt(string_data[0]);
+			double ans[] = {0,0,0,0,0,0,0,0,0,0};
+			ans[correct] = 1;
+			// Set up the input data and feed it through the network
+	    	double doublst[] = new double[784];
+	    	
+	    	for (int a=0;a<784;a++){
+	    		doublst[a] = Double.parseDouble(string_data[a+1])/255.0;	
+	    	}
+	    	validation_data[i] = new train_data(ans,doublst);
+	    	validation_data[i].answer = correct;
+		}
+		System.out.println("DONE LOADING DATA");
 	}
 	
 	//HYPERPARAMETERS. These should be set when the net is initialized.
@@ -544,7 +560,7 @@ public class net{
 		export_text = new JTextField();
 		export_text.addActionListener(new actions());
 		export_text.setColumns(15);
-		export_text.setText("trained_net");
+		export_text.setText("digit_exported_nets");
 		buttons.add(export_text);
 		
 		export_button = new JButton("EXPORT!");
@@ -619,7 +635,7 @@ public class net{
 				train_epoch();
 				shuffle(all_train_data);
 				data_ind=0;
-				int numcorrect = test_batch(test_batch_size);
+				int numcorrect = test_batch();
 				epoch_results[epoch_ind] = numcorrect;
 				System.out.println(numcorrect+" correct out of "+test_batch_size);
 				status_text.setText(numcorrect+" correct out of "+test_batch_size);
@@ -664,7 +680,7 @@ public class net{
 				train_epoch();
 				shuffle(all_train_data);
 				data_ind=0;
-				int numcorrect = test_batch(test_batch_size);
+				int numcorrect = test_batch();
 				epoch_results[epoch_ind] = numcorrect;
 				System.out.println(numcorrect+" correct out of "+test_batch_size);
 				status_text.setText(numcorrect+" correct out of "+test_batch_size);
@@ -780,10 +796,10 @@ public class net{
 				for (int i=1;i<num_epoch;i++){
 					if (epoch_results[i]==-1)break;
 					if (i%2==0){
-						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)-5);
+						//grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)-5);
 					}
 					else{
-						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)+15);
+						//grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)+15);
 					}
 					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(epoch_results[i-1]*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (epoch_results[i]*yratio));
 				}
@@ -878,14 +894,23 @@ public class net{
 		return corr;
 	}
 	
-	// Repeats the feed_and_set_expected() for batch_size times and in addition prints out a status report of the
-	// numbers classified correctly in the batch. Backpropagates for every step.
-	protected int test_batch(int batch_size){
+	// Tests the accuracy of the current net against the validation data. Returns the number of cases correct
+	protected int test_batch(){
 		int corr=0;
-		for (int i=0;i<batch_size;i++){
-			int result = feed_and_set_expected(false);
-			if (result==-1)return -1;
-			corr+=result;
+		for (int z=0;z<test_batch_size;z++){
+			train_data current_data = validation_data[z];
+			feedforward(current_data.pixels);
+			expected = current_data.solution;
+			// Get the output layer and compare to the expected answer
+			double result[] = getoutput();
+			int maxind=0;
+			for (int i=0;i<10;i++){
+				if (result[i]>result[maxind]){
+					maxind = i;
+				}
+			}
+			// Count the amount of guesses got correctly
+			if (maxind==current_data.answer)corr++;
 		}
 		return corr;
 	}
@@ -1100,21 +1125,5 @@ public class net{
 		//Currently being done in line
 		//cleardev();
 		window.repaint();
-	}
-	
-	public static void main(String[] args) throws IOException {
-		int temp[] = {784,70,10};
-		net test = new net(temp);
-		
-		test.load_training_data();
-		test.train_batch_size = 10;
-		test.test_batch_size = 10000;
-		test.learning_rate = 3;
-		test.quadratic = false;
-		test.softmax = true;
-		test.num_epoch = 30;
-
-		test.initialize_values();
-		test.create_window();
 	}
 }
