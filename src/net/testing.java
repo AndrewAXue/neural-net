@@ -77,7 +77,7 @@ public class testing {
 		int temp[] = {784,70,10};
 		test = new net(temp);
 		
-			test.load_training_data();
+		test.load_training_and_validation_data();
 	
 		
 		test.train_batch_size = 10;
@@ -85,7 +85,7 @@ public class testing {
 		test.learning_rate = 3;
 		test.quadratic = false;
 		test.softmax = true;
-		test.num_epoch = 30;
+		test.num_epoch = 300;
 		
 		test.initialize_values();
 		test.auto = autoa;
