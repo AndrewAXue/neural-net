@@ -74,29 +74,25 @@ public class testing {
 		}
 		*/
 		
-		int temp[] = {784,70,10};
-		test = new net(temp);
-		
-		test.load_training_and_validation_data();
+		int temp[] = {784,40,10};
 	
+		test = new net(temp);
 		
 		test.train_batch_size = 10;
 		test.test_batch_size = 10000;
-		test.learning_rate = 3;
+		test.learning_rate = 0.1;
+		test.lambda = 5;
 		test.quadratic = false;
 		test.softmax = true;
-		test.num_epoch = 300;
+		test.L1regulate = false;
+		test.L2regulate = true;
+		test.num_epoch = 60;
 		
+		test.load_training_and_validation_data();
 		test.initialize_values();
 		test.auto = autoa;
 		
-		if (visuala){
 			test.create_window();
-		}
-		
-		if (test.auto){
-			test.graph_draw.start();
-		}
 		
 		long endTime   = System.currentTimeMillis();
 		long totalTime = endTime - startTime;

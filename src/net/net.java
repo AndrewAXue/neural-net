@@ -37,7 +37,7 @@ import java.io.IOException;
 // figured if I made everything from scratch I would understand it better.
 
 //TODO
-//Using validation data to prevent overfitting
+//L1 + L2 regularization
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
 //Heatmap of different numbers
@@ -56,6 +56,7 @@ import java.io.IOException;
 //Handle layers with too many nodes
 //Cross entropy cost function
 //Training batches, and all batches buttons work
+//Testing net against validation data as opposed to training data
 
 //On Hold
 //Matrix matrix multiplication for batches
@@ -76,6 +77,23 @@ public class net{
 	//Which data point currently on
 	int data_ind = 0;
 	int epoch_ind = 0;
+	
+	double lambda;
+	
+	//L1 Regularization
+	boolean L1regulate;
+	double L1value = 0;
+	double sgn(double num){
+		if (num==0) return 0;
+		else if (num<0)return -1;
+		return 1;
+	}
+	// weight -> weight(prime) = weight - learn*lambda/num_test * sgn(w) - learn*weight_dev
+	//L2 Regularization
+	boolean L2regulate;
+	double L2value = 0;
+	// weight -> weight(prime) = weight*(1-learn*lambda/num_test) - learn*weight_dev
+	
 	//Number of batches tested
 	int batch=0;
 	//Training data
@@ -89,10 +107,10 @@ public class net{
 		}
 	}
 	// Array containing all of the training data
-	train_data all_train_data [] = new train_data[32000];
+	train_data all_train_data [] = new train_data[42000];
 	
 	// Array containing some data used for validation
-	train_data validation_data [] = new train_data[10000];
+	train_data validation_data [] = new train_data[0];
 	
 	//Testing data
 	double all_test_data [][];
@@ -107,7 +125,7 @@ public class net{
 			exp.printStackTrace();
 		}
 		read.readLine();
-		for (int i=0;i<32000;i++){
+		for (int i=0;i<all_train_data.length;i++){
 			String string_data[] = read.readLine().split(",");
 			
 			int correct = Integer.parseInt(string_data[0]);
@@ -122,7 +140,7 @@ public class net{
 	    	all_train_data[i] = new train_data(ans,doublst);
 	    	all_train_data[i].answer = correct;
 		}
-		for (int i=0;i<10000;i++){
+		for (int i=0;i<validation_data.length;i++){
 			String string_data[] = read.readLine().split(",");
 			int correct = Integer.parseInt(string_data[0]);
 			double ans[] = {0,0,0,0,0,0,0,0,0,0};
@@ -170,20 +188,20 @@ public class net{
 	Timer graph_draw = new Timer(0, new actions());
 	Timer epoch_timer = new Timer(0, new actions());
 	// Used for graphing. Stores the results of testing batches
-	int epoch_results [];
-	ArrayList<Integer> batch_results = new ArrayList<Integer>();
+	int test_results [];
+	int training_results [];
 	// Denoted the setting. If false, it is on the graphing screen, else it is on the node screen.
 	boolean graphing = false;
   
   
 	// Buttons used in the VISUALIZATION
-	JButton graph_button,train_epoch_button,feed_button,train_all_epoch_button,export_button,train_batch_button;
+	JButton graph_button,train_epoch_button,feed_button,train_all_epoch_button,export_button,test_batch_button;
 	// Label for printing status reports
 	JLabel status_text,batch_text;
 	// Textfield for choosing file name of where to export net
 	JTextField export_text;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
-	boolean drawdev = false;
+	boolean drawdev;
 	
 	//Size of VISUALIZATION
 	int visualdim = 900;
@@ -308,6 +326,12 @@ public class net{
 			}
 			write.append(" training batch size "+train_batch_size+" testing batch size "+test_batch_size);
 			write.append(" "+epoch_ind+" epochs run");
+			if (L1regulate){
+				write.append(" L1 regularization ");
+			}
+			else if (L2regulate){
+				write.append(" L2 regularization ");
+			}
 			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
@@ -413,6 +437,7 @@ public class net{
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	net(int arr[]){
+		drawdev = true;;
 		alllayersize = arr;
 		numlayer = arr.length;
 	}
@@ -483,9 +508,21 @@ public class net{
 		}
 		
 		// Setting up array for storing results of testing after each epoch
-		epoch_results = new int[num_epoch];
+		test_results = new int[num_epoch];
+		training_results = new int[num_epoch];
 		for (int i=0;i<num_epoch;i++){
-			epoch_results[i]=-1;
+			test_results[i]=-1;
+			training_results[i]=-1;
+		}
+		
+		if (L1regulate&&L2regulate){
+			L2regulate = false;
+		}
+		if (L1regulate){
+			L1value = learning_rate*lambda/(double)all_train_data.length;
+		}
+		if (L2regulate){
+			L2value = 1-learning_rate*lambda/(double)all_train_data.length;
 		}
 	}
 	
@@ -545,9 +582,9 @@ public class net{
 		feed_button.addActionListener(new actions());
 		buttons.add(feed_button);
 		
-		train_batch_button = new JButton("TRAIN BATCH!");
-		train_batch_button.addActionListener(new actions());
-		buttons.add(train_batch_button);
+		test_batch_button = new JButton("TRAIN BATCH!");
+		test_batch_button.addActionListener(new actions());
+		buttons.add(test_batch_button);
 		
 		train_epoch_button = new JButton("TRAIN EPOCH!");
 		train_epoch_button.addActionListener(new actions());
@@ -602,10 +639,39 @@ public class net{
 		everything.add(downfill,cons);
 		
 		// Currently just a filler for some are on the right of the visualization
-		JPanel rightfill = new JPanel();
-		rightfill.setBackground(Color.ORANGE);
-	
+		JPanel statistics = new JPanel();
+		statistics.setBackground(Color.ORANGE);
 		
+		StringBuilder allstats = new StringBuilder();
+		allstats.append("<html><center margin='0 0 0 0'>layers:<br>{"+alllayersize[0]);
+		for (int i=1;i<alllayersize.length;i++){
+			allstats.append(","+alllayersize[i]);
+		}
+		allstats.append("}<br>");
+		allstats.append("train size: "+train_batch_size+"<br>test size: "+test_batch_size+"<br>learning_rate: "+learning_rate+"<br>");
+		if (L1regulate){
+			allstats.append("L1Regulate<br>"+"Lambda: "+lambda+"<br>");
+		}
+		else if (L2regulate){
+			allstats.append("L2Regulate<br>"+"Lambda: "+lambda+"<br>");
+		}
+		if (softmax){
+			allstats.append("Softmax<br>");
+		}
+		else{
+			if (quadratic){
+				allstats.append("Quadratic<br>");
+			}
+			else{
+				allstats.append("Cross-entropy<br>");
+			}
+		}
+		System.out.println(allstats);
+		allstats.append("</html>");
+		statistics.add(new JLabel(allstats.toString()));
+		/*
+		test.num_epoch = 60;
+		 */
 		cons.fill = GridBagConstraints.BOTH;
 		cons.weightx = 1;
 		cons.weighty = 1;
@@ -615,28 +681,47 @@ public class net{
 		cons.gridy = 1;
 		cons.anchor = GridBagConstraints.PAGE_START;
 		cons.insets = new Insets(0,0,0,0);
-		everything.add(rightfill,cons);
+		everything.add(statistics,cons);
 		
 		window.add(everything);
 		window.setVisible(true);
 	}
 	
+	// Tests the net against the test_data as opposed to the validation_data
+	int no_val_test_batch(){
+		shuffle(all_train_data);
+		int numcorrect = 0;
+		for (int i=0;i<test_batch_size;i++){
+			train_data data = all_train_data[i];
+			feedforward(data.pixels);
+			double expected_array[] = getoutput();
+			int expected_ans=0;
+			for (int k=1;k<=9;k++){
+				if (expected_array[i]>expected_array[expected_ans]){
+					expected_ans = i;
+				}
+			}
+			if (expected_ans==data.answer){
+				numcorrect++;
+			}
+		}
+		return numcorrect;
+	}
 	
 	// Preform different actions depending on the button pressed
 	public class actions implements ActionListener{
 		public void actionPerformed(ActionEvent action) {
-			if (action.getSource() == train_batch_button){
-				for (int i=0;i<4200;i++){
-					int result = learn_batch(train_batch_size);
-					System.out.println(result);
-				}
+			if (action.getSource() == test_batch_button){
+				int numcorrect = no_val_test_batch();
+				System.out.println(numcorrect+" correct out of "+test_batch_size);
+				status_text.setText(numcorrect+" correct out of "+test_batch_size);
 			}
 			if (action.getSource() == train_epoch_button){
 				train_epoch();
 				shuffle(all_train_data);
 				data_ind=0;
 				int numcorrect = test_batch();
-				epoch_results[epoch_ind] = numcorrect;
+				test_results[epoch_ind] = numcorrect;
 				System.out.println(numcorrect+" correct out of "+test_batch_size);
 				status_text.setText(numcorrect+" correct out of "+test_batch_size);
 				epoch_ind++;
@@ -681,7 +766,7 @@ public class net{
 				shuffle(all_train_data);
 				data_ind=0;
 				int numcorrect = test_batch();
-				epoch_results[epoch_ind] = numcorrect;
+				test_results[epoch_ind] = numcorrect;
 				System.out.println(numcorrect+" correct out of "+test_batch_size);
 				status_text.setText(numcorrect+" correct out of "+test_batch_size);
 				epoch_ind++;
@@ -791,17 +876,24 @@ public class net{
 				grap.drawString("100", distfromside-35, visualdim-distfromtop-800+5);
 				// Ratios used to even spread out data points among available space
 				double xratio = 800/(double)num_epoch;
-				double yratio = 800/(double)test_batch_size;
+				double y_test_ratio = 800/(double)test_batch_size;
+				double y_training_ratio = 800/(double)all_train_data.length;
 				// Draws a line graph between all data points (which are the accuracy of each batch)
 				for (int i=1;i<num_epoch;i++){
-					if (epoch_results[i]==-1)break;
-					if (i%2==0){
-						//grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)-5);
+					if (test_results[i]==-1)break;
+					if (i%5==0){
+						grap.drawString(String.valueOf(Math.round(test_results[i]*10000.00/(double)test_batch_size)/100.00+"%"), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (test_results[i]*y_test_ratio)+15);
+						grap.setColor(Color.RED);
+						grap.drawString(String.valueOf(Math.round(training_results[i]*10000.00/(double)all_train_data.length)/100.00+"%"), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (training_results[i]*y_training_ratio)-5);
+						grap.setColor(Color.WHITE);
 					}
 					else{
-						//grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)+15);
+						//grap.drawString(String.valueOf(test_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (test_results[i]*y_test_ratio)+15);
 					}
-					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(epoch_results[i-1]*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (epoch_results[i]*yratio));
+					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(test_results[i-1]*y_test_ratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (test_results[i]*y_test_ratio));
+					grap.setColor(Color.RED);
+					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(training_results[i-1]*y_training_ratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (training_results[i]*y_training_ratio));
+					grap.setColor(Color.WHITE);
 				}
 			}
 		}
@@ -855,14 +947,24 @@ public class net{
 	
 	// Train through an epoch of data and apply backpropagation for each mini batch trained.
 	protected void train_epoch(){
+		long startTime = System.currentTimeMillis();
+		
 		shuffle(all_train_data);
 		int numbatch=0;
+		int numcorrect=0;
+		int batch_correct=0;
 		data_ind=0;
 		//long startTime = System.nanoTime();
-		while(learn_batch(train_batch_size)!=-1){
+		while(true){
+			batch_correct = learn_batch(train_batch_size);
+			if (batch_correct==-1){
+				training_results[epoch_ind] = numcorrect;
+				break;
+			}
+			numcorrect+=batch_correct;
 			if (numbatch%100==0) {
 				batch = numbatch;
-				System.out.println("Batch: "+numbatch);
+				//System.out.println("Batch: "+numbatch);
 				window.repaint();
 				/*
 				long endTime   = System.nanoTime();
@@ -873,6 +975,9 @@ public class net{
 			}
 			numbatch++;  
 		}
+		long endTime   = System.currentTimeMillis();
+		long totalTime = endTime - startTime;
+		System.out.println("Runtime is "+totalTime);
 	}
 	
 	
@@ -897,7 +1002,7 @@ public class net{
 	// Tests the accuracy of the current net against the validation data. Returns the number of cases correct
 	protected int test_batch(){
 		int corr=0;
-		for (int z=0;z<test_batch_size;z++){
+		for (int z=0;z<validation_data.length;z++){
 			train_data current_data = validation_data[z];
 			feedforward(current_data.pixels);
 			expected = current_data.solution;
@@ -948,6 +1053,7 @@ public class net{
 		public void mouseClicked(MouseEvent e) {
 			// If the mouse was clicked on one of the nodes, toggle the drawweight property of the node and repaint
 			// the window to reflect the change
+			System.out.println(e.getPoint());
 			boolean done = false;
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
@@ -1050,11 +1156,6 @@ public class net{
 			throw new NullPointerException("\nExpected array is empty! This is caused when backpropagate is called before the array of expected value is set");
 		}
 		
-		for (int i=0;i<numlayer;i++){
-			for (int k=0;k<alllayersize[i];k++){
-				error[i][k]=0;
-			}
-		}
 		for (int i=0;i<alllayersize[numlayer-1];i++){
 			nodeclass active = allnode[numlayer-1][i];
 			double expect = expected[i];
@@ -1108,15 +1209,20 @@ public class net{
 		//Updating biases
 		for (int i=1;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
-				allnode[i][k].bias-=learning_rate/(double)batch_size*allnode[i][k].biasdev;
+				allnode[i][k].bias=allnode[i][k].bias-((learning_rate/(double)batch_size)*allnode[i][k].biasdev);
 				allnode[i][k].biasdev = 0;
 			}
 		}
-		//Updating weights
+		// L1/L2 values are pre calculated to improve time
+		//L1value = learning_rate*lambda/(double)all_train_data.length;
+		//L2value = 1-learning_rate*lambda/(double)all_train_data.length;
+		
 		for (int i=0;i<numlayer-1;i++){
 			for (int k=0;k<allweight[i].length;k++){
 				for (int a=0;a<allweight[i][0].length;a++){
-					allweight[i][k][a].weight-=learning_rate/(double)batch_size*allweight[i][k][a].weightdev;
+					if (L1regulate) allweight[i][k][a].weight = allweight[i][k][a].weight - (learning_rate*lambda/(double)all_train_data.length*sgn(allweight[i][k][a].weight))-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
+					else if (L2regulate) allweight[i][k][a].weight=L2value*allweight[i][k][a].weight-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
+					else allweight[i][k][a].weight=allweight[i][k][a].weight-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
 					allweight[i][k][a].weightdev = 0;
 				}
 			}
