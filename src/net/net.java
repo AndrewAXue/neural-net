@@ -37,7 +37,7 @@ import java.io.IOException;
 // figured if I made everything from scratch I would understand it better.
 
 //TODO
-//Using validation data to prevent overfitting
+//L1 + L2 regularization
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
 //Heatmap of different numbers
@@ -56,6 +56,7 @@ import java.io.IOException;
 //Handle layers with too many nodes
 //Cross entropy cost function
 //Training batches, and all batches buttons work
+//Testing net against validation data as opposed to training data
 
 //On Hold
 //Matrix matrix multiplication for batches
@@ -76,6 +77,10 @@ public class net{
 	//Which data point currently on
 	int data_ind = 0;
 	int epoch_ind = 0;
+	
+	//L2 Regularization
+	double lambda=5;
+	boolean L2regulate=false;
 	//Number of batches tested
 	int batch=0;
 	//Training data
@@ -796,10 +801,10 @@ public class net{
 				for (int i=1;i<num_epoch;i++){
 					if (epoch_results[i]==-1)break;
 					if (i%2==0){
-						//grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)-5);
+						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)-5);
 					}
 					else{
-						//grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)+15);
+						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)+15);
 					}
 					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(epoch_results[i-1]*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (epoch_results[i]*yratio));
 				}
@@ -1108,7 +1113,7 @@ public class net{
 		//Updating biases
 		for (int i=1;i<numlayer;i++){
 			for (int k=0;k<alllayersize[i];k++){
-				allnode[i][k].bias-=learning_rate/(double)batch_size*allnode[i][k].biasdev;
+				allnode[i][k].bias=allnode[i][k].bias-((learning_rate/(double)batch_size)*allnode[i][k].biasdev);
 				allnode[i][k].biasdev = 0;
 			}
 		}
@@ -1116,7 +1121,8 @@ public class net{
 		for (int i=0;i<numlayer-1;i++){
 			for (int k=0;k<allweight[i].length;k++){
 				for (int a=0;a<allweight[i][0].length;a++){
-					allweight[i][k][a].weight-=learning_rate/(double)batch_size*allweight[i][k][a].weightdev;
+					if (L2regulate) allweight[i][k][a].weight=(1-(learning_rate*lambda)/all_train_data.length)*allweight[i][k][a].weight-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
+					else allweight[i][k][a].weight-=((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
 					allweight[i][k][a].weightdev = 0;
 				}
 			}
