@@ -87,7 +87,7 @@ public class testing {
 		test.quadratic = false;
 		test.softmax = true;
 		test.L2regulate = true;
-		test.num_epoch = 300;
+		test.num_epoch = 30;
 		
 		test.initialize_values();
 		test.auto = autoa;

@@ -79,8 +79,8 @@ public class net{
 	int epoch_ind = 0;
 	
 	//L2 Regularization
-	double lambda=5;
-	boolean L2regulate=false;
+	double lambda;
+	boolean L2regulate;
 	//Number of batches tested
 	int batch=0;
 	//Training data
@@ -313,6 +313,9 @@ public class net{
 			}
 			write.append(" training batch size "+train_batch_size+" testing batch size "+test_batch_size);
 			write.append(" "+epoch_ind+" epochs run");
+			if (L2regulate){
+				write.append(" L2 regularization ");
+			}
 			write.append("\n");
 			for (int i=0;i<numlayer;i++){
 				write.append(alllayersize[i]+" ");
