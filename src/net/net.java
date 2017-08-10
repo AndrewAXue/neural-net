@@ -175,8 +175,8 @@ public class net{
 	Timer graph_draw = new Timer(0, new actions());
 	Timer epoch_timer = new Timer(0, new actions());
 	// Used for graphing. Stores the results of testing batches
-	int epoch_results [];
-	ArrayList<Integer> batch_results = new ArrayList<Integer>();
+	int test_results [];
+	int training_results [];
 	// Denoted the setting. If false, it is on the graphing screen, else it is on the node screen.
 	boolean graphing = false;
   
@@ -491,9 +491,11 @@ public class net{
 		}
 		
 		// Setting up array for storing results of testing after each epoch
-		epoch_results = new int[num_epoch];
+		test_results = new int[num_epoch];
+		training_results = new int[num_epoch];
 		for (int i=0;i<num_epoch;i++){
-			epoch_results[i]=-1;
+			test_results[i]=-1;
+			training_results[i]=-1;
 		}
 	}
 	
@@ -610,10 +612,36 @@ public class net{
 		everything.add(downfill,cons);
 		
 		// Currently just a filler for some are on the right of the visualization
-		JPanel rightfill = new JPanel();
-		rightfill.setBackground(Color.ORANGE);
-	
+		JPanel statistics = new JPanel();
+		statistics.setBackground(Color.ORANGE);
 		
+		StringBuilder allstats = new StringBuilder();
+		allstats.append("<html><center margin='0 0 0 0'>layers:<br>{"+alllayersize[0]);
+		for (int i=1;i<alllayersize.length;i++){
+			allstats.append(","+alllayersize[i]);
+		}
+		allstats.append("}<br>");
+		allstats.append("train size: "+train_batch_size+"<br>test size: "+test_batch_size+"<br>learning_rate: "+learning_rate+"<br>");
+		if (L2regulate){
+			allstats.append("L2Regulate<br>"+lambda+"<br>");
+		}
+		if (softmax){
+			allstats.append("Softmax<br>");
+		}
+		else{
+			if (quadratic){
+				allstats.append("Quadratic<br>");
+			}
+			else{
+				allstats.append("Cross-entropy<br>");
+			}
+		}
+		System.out.println(allstats);
+		allstats.append("</html>");
+		statistics.add(new JLabel(allstats.toString()));
+		/*
+		test.num_epoch = 60;
+		 */
 		cons.fill = GridBagConstraints.BOTH;
 		cons.weightx = 1;
 		cons.weighty = 1;
@@ -623,7 +651,7 @@ public class net{
 		cons.gridy = 1;
 		cons.anchor = GridBagConstraints.PAGE_START;
 		cons.insets = new Insets(0,0,0,0);
-		everything.add(rightfill,cons);
+		everything.add(statistics,cons);
 		
 		window.add(everything);
 		window.setVisible(true);
@@ -644,7 +672,7 @@ public class net{
 				shuffle(all_train_data);
 				data_ind=0;
 				int numcorrect = test_batch();
-				epoch_results[epoch_ind] = numcorrect;
+				test_results[epoch_ind] = numcorrect;
 				System.out.println(numcorrect+" correct out of "+test_batch_size);
 				status_text.setText(numcorrect+" correct out of "+test_batch_size);
 				epoch_ind++;
@@ -689,7 +717,7 @@ public class net{
 				shuffle(all_train_data);
 				data_ind=0;
 				int numcorrect = test_batch();
-				epoch_results[epoch_ind] = numcorrect;
+				test_results[epoch_ind] = numcorrect;
 				System.out.println(numcorrect+" correct out of "+test_batch_size);
 				status_text.setText(numcorrect+" correct out of "+test_batch_size);
 				epoch_ind++;
@@ -799,17 +827,24 @@ public class net{
 				grap.drawString("100", distfromside-35, visualdim-distfromtop-800+5);
 				// Ratios used to even spread out data points among available space
 				double xratio = 800/(double)num_epoch;
-				double yratio = 800/(double)test_batch_size;
+				double y_test_ratio = 800/(double)test_batch_size;
+				double y_training_ratio = 800/(double)all_train_data.length;
 				// Draws a line graph between all data points (which are the accuracy of each batch)
 				for (int i=1;i<num_epoch;i++){
-					if (epoch_results[i]==-1)break;
-					if (i%2==0){
-						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)-5);
+					if (test_results[i]==-1)break;
+					if (i%5==0){
+						grap.drawString(String.valueOf(Math.round(test_results[i]*10000.00/(double)test_batch_size)/100.00+"%"), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (test_results[i]*y_test_ratio)+15);
+						grap.setColor(Color.RED);
+						grap.drawString(String.valueOf(Math.round(training_results[i]*10000.00/(double)all_train_data.length)/100.00+"%"), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (training_results[i]*y_training_ratio)-5);
+						grap.setColor(Color.WHITE);
 					}
 					else{
-						grap.drawString(String.valueOf(epoch_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (epoch_results[i]*yratio)+15);
+						//grap.drawString(String.valueOf(test_results[i]), distfromside+(int)(i*xratio)-15, visualdim-distfromtop-(int) (test_results[i]*y_test_ratio)+15);
 					}
-					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(epoch_results[i-1]*yratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (epoch_results[i]*yratio));
+					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(test_results[i-1]*y_test_ratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (test_results[i]*y_test_ratio));
+					grap.setColor(Color.RED);
+					grap.drawLine(distfromside+(int)((i-1)*xratio), visualdim-distfromtop-(int)(training_results[i-1]*y_training_ratio), distfromside+(int)(i*xratio), visualdim-distfromtop-(int) (training_results[i]*y_training_ratio));
+					grap.setColor(Color.WHITE);
 				}
 			}
 		}
@@ -865,9 +900,17 @@ public class net{
 	protected void train_epoch(){
 		shuffle(all_train_data);
 		int numbatch=0;
+		int numcorrect=0;
+		int batch_correct=0;
 		data_ind=0;
 		//long startTime = System.nanoTime();
-		while(learn_batch(train_batch_size)!=-1){
+		while(true){
+			batch_correct = learn_batch(train_batch_size);
+			if (batch_correct==-1){
+				training_results[epoch_ind] = numcorrect;
+				break;
+			}
+			numcorrect+=batch_correct;
 			if (numbatch%100==0) {
 				batch = numbatch;
 				System.out.println("Batch: "+numbatch);
@@ -956,6 +999,7 @@ public class net{
 		public void mouseClicked(MouseEvent e) {
 			// If the mouse was clicked on one of the nodes, toggle the drawweight property of the node and repaint
 			// the window to reflect the change
+			System.out.println(e.getPoint());
 			boolean done = false;
 			for (int i=0;i<alllayersize.length;i++){
 				for (int k=0;k<alllayersize[i];k++){
