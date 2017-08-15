@@ -78,9 +78,22 @@ public class net{
 	int data_ind = 0;
 	int epoch_ind = 0;
 	
-	//L2 Regularization
 	double lambda;
+	
+	//L1 Regularization
+	boolean L1regulate;
+	double L1value;
+	double sgn(double num){
+		if (num==0) return 0;
+		else if (num<0)return -1;
+		return 1;
+	}
+	// weight -> weight(prime) = weight - learn*lambda/num_test * sgn(w) - learn*weight_dev
+	//L2 Regularization
 	boolean L2regulate;
+	double L2value;
+	// weight -> weight(prime) = weight*(1-learn*lambda/num_test) - learn*weight_dev
+	
 	//Number of batches tested
 	int batch=0;
 	//Training data
@@ -313,7 +326,10 @@ public class net{
 			}
 			write.append(" training batch size "+train_batch_size+" testing batch size "+test_batch_size);
 			write.append(" "+epoch_ind+" epochs run");
-			if (L2regulate){
+			if (L1regulate){
+				write.append(" L1 regularization ");
+			}
+			else if (L2regulate){
 				write.append(" L2 regularization ");
 			}
 			write.append("\n");
@@ -497,6 +513,16 @@ public class net{
 			test_results[i]=-1;
 			training_results[i]=-1;
 		}
+		
+		if (L1regulate&&L2regulate){
+			L2regulate = false;
+		}
+		if (L1regulate){
+			L1value = learning_rate*lambda/(double)all_train_data.length;
+		}
+		else if (L2regulate){
+			L2value = 1-learning_rate*lambda/(double)all_train_data.length;
+		}
 	}
 	
 	/*
@@ -622,8 +648,11 @@ public class net{
 		}
 		allstats.append("}<br>");
 		allstats.append("train size: "+train_batch_size+"<br>test size: "+test_batch_size+"<br>learning_rate: "+learning_rate+"<br>");
-		if (L2regulate){
-			allstats.append("L2Regulate<br>"+lambda+"<br>");
+		if (L1regulate){
+			allstats.append("L1Regulate<br>"+"Lambda: "+lambda+"<br>");
+		}
+		else if (L2regulate){
+			allstats.append("L2Regulate<br>"+"Lambda: "+lambda+"<br>");
 		}
 		if (softmax){
 			allstats.append("Softmax<br>");
@@ -1163,13 +1192,14 @@ public class net{
 				allnode[i][k].bias=allnode[i][k].bias-((learning_rate/(double)batch_size)*allnode[i][k].biasdev);
 				allnode[i][k].biasdev = 0;
 			}
-		}
-		//Updating weights
+		}		
+		
 		for (int i=0;i<numlayer-1;i++){
 			for (int k=0;k<allweight[i].length;k++){
 				for (int a=0;a<allweight[i][0].length;a++){
-					if (L2regulate) allweight[i][k][a].weight=(1-(learning_rate*lambda)/all_train_data.length)*allweight[i][k][a].weight-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
-					else allweight[i][k][a].weight-=((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
+					if (L1regulate) allweight[i][k][a].weight = allweight[i][k][a].weight - (L1value*sgn(allweight[i][k][a].weight))-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
+					else if (L2regulate) allweight[i][k][a].weight=L2value*allweight[i][k][a].weight-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
+					else allweight[i][k][a].weight=allweight[i][k][a].weight-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
 					allweight[i][k][a].weightdev = 0;
 				}
 			}
