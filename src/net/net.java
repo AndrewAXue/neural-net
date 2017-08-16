@@ -82,7 +82,7 @@ public class net{
 	
 	//L1 Regularization
 	boolean L1regulate;
-	double L1value;
+	double L1value = 0;
 	double sgn(double num){
 		if (num==0) return 0;
 		else if (num<0)return -1;
@@ -91,7 +91,7 @@ public class net{
 	// weight -> weight(prime) = weight - learn*lambda/num_test * sgn(w) - learn*weight_dev
 	//L2 Regularization
 	boolean L2regulate;
-	double L2value;
+	double L2value = 0;
 	// weight -> weight(prime) = weight*(1-learn*lambda/num_test) - learn*weight_dev
 	
 	//Number of batches tested
@@ -195,13 +195,13 @@ public class net{
   
   
 	// Buttons used in the VISUALIZATION
-	JButton graph_button,train_epoch_button,feed_button,train_all_epoch_button,export_button,train_batch_button;
+	JButton graph_button,train_epoch_button,feed_button,train_all_epoch_button,export_button,test_batch_button;
 	// Label for printing status reports
 	JLabel status_text,batch_text;
 	// Textfield for choosing file name of where to export net
 	JTextField export_text;
 	// Whether the partial derivatives should be drawn. Used for importing nets when it should be trained
-	boolean drawdev = false;
+	boolean drawdev;
 	
 	//Size of VISUALIZATION
 	int visualdim = 900;
@@ -437,6 +437,7 @@ public class net{
 	// Initializing neural net with arr.length layers and arr[i] nodes for the ith layer. Also opens up a window and
 	// starts VISUALIZATION.
 	net(int arr[]){
+		drawdev = true;;
 		alllayersize = arr;
 		numlayer = arr.length;
 	}
@@ -581,9 +582,9 @@ public class net{
 		feed_button.addActionListener(new actions());
 		buttons.add(feed_button);
 		
-		train_batch_button = new JButton("TRAIN BATCH!");
-		train_batch_button.addActionListener(new actions());
-		buttons.add(train_batch_button);
+		test_batch_button = new JButton("TRAIN BATCH!");
+		test_batch_button.addActionListener(new actions());
+		buttons.add(test_batch_button);
 		
 		train_epoch_button = new JButton("TRAIN EPOCH!");
 		train_epoch_button.addActionListener(new actions());
@@ -686,15 +687,34 @@ public class net{
 		window.setVisible(true);
 	}
 	
+	// Tests the net against the test_data as opposed to the validation_data
+	int no_val_test_batch(){
+		shuffle(all_train_data);
+		int numcorrect = 0;
+		for (int i=0;i<test_batch_size;i++){
+			train_data data = all_train_data[i];
+			feedforward(data.pixels);
+			double expected_array[] = getoutput();
+			int expected_ans=0;
+			for (int k=1;k<=9;k++){
+				if (expected_array[i]>expected_array[expected_ans]){
+					expected_ans = i;
+				}
+			}
+			if (expected_ans==data.answer){
+				numcorrect++;
+			}
+		}
+		return numcorrect;
+	}
 	
 	// Preform different actions depending on the button pressed
 	public class actions implements ActionListener{
 		public void actionPerformed(ActionEvent action) {
-			if (action.getSource() == train_batch_button){
-				for (int i=0;i<4200;i++){
-					int result = learn_batch(train_batch_size);
-					System.out.println(result);
-				}
+			if (action.getSource() == test_batch_button){
+				int numcorrect = no_val_test_batch();
+				System.out.println(numcorrect+" correct out of "+test_batch_size);
+				status_text.setText(numcorrect+" correct out of "+test_batch_size);
 			}
 			if (action.getSource() == train_epoch_button){
 				train_epoch();
@@ -1192,12 +1212,15 @@ public class net{
 				allnode[i][k].bias=allnode[i][k].bias-((learning_rate/(double)batch_size)*allnode[i][k].biasdev);
 				allnode[i][k].biasdev = 0;
 			}
-		}		
+		}
+		// L1/L2 values are pre calculated to improve time
+		//L1value = learning_rate*lambda/(double)all_train_data.length;
+		//L2value = 1-learning_rate*lambda/(double)all_train_data.length;
 		
 		for (int i=0;i<numlayer-1;i++){
 			for (int k=0;k<allweight[i].length;k++){
 				for (int a=0;a<allweight[i][0].length;a++){
-					if (L1regulate) allweight[i][k][a].weight = allweight[i][k][a].weight - (L1value*sgn(allweight[i][k][a].weight))-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
+					if (L1regulate) allweight[i][k][a].weight = allweight[i][k][a].weight - (learning_rate*lambda/(double)all_train_data.length*sgn(allweight[i][k][a].weight))-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
 					else if (L2regulate) allweight[i][k][a].weight=L2value*allweight[i][k][a].weight-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
 					else allweight[i][k][a].weight=allweight[i][k][a].weight-((learning_rate/(double)batch_size)*allweight[i][k][a].weightdev);
 					allweight[i][k][a].weightdev = 0;
