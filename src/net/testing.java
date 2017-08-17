@@ -74,7 +74,7 @@ public class testing {
 		}
 		*/
 		
-		int temp[] = {784,100,10};
+		int temp[] = {784,40,10};
 	
 		test = new net(temp);
 		

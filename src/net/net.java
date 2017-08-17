@@ -107,10 +107,10 @@ public class net{
 		}
 	}
 	// Array containing all of the training data
-	train_data all_train_data [] = new train_data[32000];
+	train_data all_train_data [] = new train_data[42000];
 	
 	// Array containing some data used for validation
-	train_data validation_data [] = new train_data[10000];
+	train_data validation_data [] = new train_data[0];
 	
 	//Testing data
 	double all_test_data [][];
@@ -125,7 +125,7 @@ public class net{
 			exp.printStackTrace();
 		}
 		read.readLine();
-		for (int i=0;i<32000;i++){
+		for (int i=0;i<all_train_data.length;i++){
 			String string_data[] = read.readLine().split(",");
 			
 			int correct = Integer.parseInt(string_data[0]);
@@ -140,7 +140,7 @@ public class net{
 	    	all_train_data[i] = new train_data(ans,doublst);
 	    	all_train_data[i].answer = correct;
 		}
-		for (int i=0;i<10000;i++){
+		for (int i=0;i<validation_data.length;i++){
 			String string_data[] = read.readLine().split(",");
 			int correct = Integer.parseInt(string_data[0]);
 			double ans[] = {0,0,0,0,0,0,0,0,0,0};
@@ -521,7 +521,7 @@ public class net{
 		if (L1regulate){
 			L1value = learning_rate*lambda/(double)all_train_data.length;
 		}
-		else if (L2regulate){
+		if (L2regulate){
 			L2value = 1-learning_rate*lambda/(double)all_train_data.length;
 		}
 	}
@@ -947,6 +947,8 @@ public class net{
 	
 	// Train through an epoch of data and apply backpropagation for each mini batch trained.
 	protected void train_epoch(){
+		long startTime = System.currentTimeMillis();
+		
 		shuffle(all_train_data);
 		int numbatch=0;
 		int numcorrect=0;
@@ -962,7 +964,7 @@ public class net{
 			numcorrect+=batch_correct;
 			if (numbatch%100==0) {
 				batch = numbatch;
-				System.out.println("Batch: "+numbatch);
+				//System.out.println("Batch: "+numbatch);
 				window.repaint();
 				/*
 				long endTime   = System.nanoTime();
@@ -973,6 +975,9 @@ public class net{
 			}
 			numbatch++;  
 		}
+		long endTime   = System.currentTimeMillis();
+		long totalTime = endTime - startTime;
+		System.out.println("Runtime is "+totalTime);
 	}
 	
 	
@@ -997,7 +1002,7 @@ public class net{
 	// Tests the accuracy of the current net against the validation data. Returns the number of cases correct
 	protected int test_batch(){
 		int corr=0;
-		for (int z=0;z<test_batch_size;z++){
+		for (int z=0;z<validation_data.length;z++){
 			train_data current_data = validation_data[z];
 			feedforward(current_data.pixels);
 			expected = current_data.solution;
@@ -1151,11 +1156,6 @@ public class net{
 			throw new NullPointerException("\nExpected array is empty! This is caused when backpropagate is called before the array of expected value is set");
 		}
 		
-		for (int i=0;i<numlayer;i++){
-			for (int k=0;k<alllayersize[i];k++){
-				error[i][k]=0;
-			}
-		}
 		for (int i=0;i<alllayersize[numlayer-1];i++){
 			nodeclass active = allnode[numlayer-1][i];
 			double expect = expected[i];
