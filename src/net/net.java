@@ -37,7 +37,6 @@ import java.io.IOException;
 // figured if I made everything from scratch I would understand it better.
 
 //TODO
-//L1 + L2 regularization
 //Other improvements for escaping local minima
 //Implement a learning rate slowdown as the number of batches tested goes
 //Heatmap of different numbers
@@ -45,6 +44,7 @@ import java.io.IOException;
 //More more cost functions
 
 //DONE!
+//L1 + L2 regularization
 //fisher-yates shuffling algorithm
 //Buttons for training, exporting, graphing and feeding
 //Graphing performance over epochs
@@ -58,11 +58,7 @@ import java.io.IOException;
 //Training batches, and all batches buttons work
 //Testing net against validation data as opposed to training data
 
-//On Hold
-//Matrix matrix multiplication for batches
-
-//Known bugs:
-//Slow learning rate. Matrix matrix multiplication should alleviate this
+//Research on Matrix Matrix multiplication showed that while there are alternative methods with lower asymptotic complexity, they have larger constants and so aren't faster in practice
 
 
 public class net{
